@@ -1,0 +1,16 @@
+{
+    "name": "rakit/framework",
+    "description": "Micro framework laravel|lumen taste",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Muhammad Syifa",
+            "email": "emsifa@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "4.*"
+    }
+}
