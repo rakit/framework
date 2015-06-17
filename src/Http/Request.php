@@ -1,8 +1,12 @@
 <?php namespace Rakit\Framework\Http;
 
+use Rakit\Framework\App;
 use Rakit\Framework\Bag;
+use Rakit\Framework\MacroableTrait;
 
 class Request {
+
+    use MacroableTrait;
 
     const METHOD_GET = 'GET';
     const METHOD_POST = 'POST';
@@ -16,6 +20,111 @@ class Request {
     {
         if($route) $this->defineRoute($route);
         $this->app = $app;
+
+        $this->inputs = new Bag((array) $_POST + (array) $_GET);
+        $this->files = new Bag((array) $_FILES);
+    }
+
+    public function all()
+    {
+        $all_inputs = $this->inputs->all();
+        $all_files = $this->files->all();
+        foreach($all_files as $key => $value) {
+            $all_files[$key] = $this->hasMultiFiles($key)? $this->multiFiles($key) : $this->file($key);
+        }
+
+        return array_merge($all_inputs, $all_files);
+    }
+
+    public function has($key)
+    {
+        return $this->inputs->has($key);
+    }
+
+    public function get($key, $default = null)
+    {
+        return $this->inputs->get($key, $default);
+    }
+
+    public function only(array $keys)
+    {
+        return $this->inputs->only($keys, true);
+    }
+
+    public function except(array $keys)
+    {
+        return $this->inputs->except($keys, true);
+    }
+
+    public function file($key)
+    {
+        $_file = $this->files[$key];
+        return $file? $this->makeInputFile($_file) : NULL;
+    }
+
+    public function multiFiles($key)
+    {  
+        if(!$this->hasMultiFiles($key)) return array();
+
+        $input_files = array();
+
+        $files = $this->files[$key];
+
+        $names = $files["name"];
+        $types = $files["type"];
+        $temps = $files["tmp_name"];
+        $errors = $files["error"];
+        $sizes = $files["size"];
+
+        foreach($temps as $i => $tmp) {
+            if(empty($tmp) OR !is_uploaded_file($tmp)) continue;
+
+            $_file = array(
+                'name' => $names[$i],
+                'type' => $types[$i],
+                'tmp_name' => $tmp,
+                'error' => $errors[$i],
+                'size' => $sizes[$i]
+            );
+
+            $input_files[] = $this->makeInputFile($_file);
+        }
+
+        return $input_files;
+    }
+
+    public function hasFile($key)
+    {
+        $file = $this->files[$key];
+        
+        if(!$file) return FALSE;
+
+        $tmp = $file["tmp_name"];
+
+        if(!is_string($tmp)) return FALSE;
+
+        return is_uploaded_file($tmp);
+    }
+
+    public function hasMultiFiles($key)
+    {   
+        $files = $this->files[$key];
+
+        if(!$files) return FALSE;
+
+        $uploaded_files = $files["tmp_name"];
+        if(!is_array($uploaded_files)) return FALSE;
+
+        foreach($uploaded_files as $tmp_file) {
+            if(!empty($tmp_file) AND is_uploaded_file($tmp_file)) return TRUE;
+        }
+
+        return FALSE;
+    }
+
+    protected function makeInputFile(array $_file)
+    {
+        return new UploadedFile($_file);
     }
 
     public function defineRoute(Route $route)
@@ -73,11 +182,6 @@ class Request {
     public function isHttp()
     {
         return !$this->isHttps();
-    }
-
-    public function cookie($key, $default = null)
-    {
-        return $this->app->cookie->get($key, $default);
     }
 
     public function isAjax()

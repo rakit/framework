@@ -2,6 +2,8 @@
 
 class RouteMap {
 
+    use MacroableTrait;
+
     /**
      * Registered routes
      * @var array

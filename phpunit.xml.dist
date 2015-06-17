@@ -1,0 +1,10 @@
+<phpunit bootstrap="vendor/autoload.php">
+    <testsuites>
+        <testsuite name="Rakit Framework">
+            <file>tests/ContainerTests.php</file>
+            <file>tests/BagTests.php</file>
+            <file>tests/HookTests.php</file>
+            <file>tests/AppTests.php</file>
+        </testsuite>
+    </testsuites>
+</phpunit>

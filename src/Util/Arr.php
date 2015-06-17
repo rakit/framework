@@ -138,7 +138,7 @@ class Arr {
             if (call_user_func($callback, $key, $value)) return $value;
         }
 
-        return value($default);
+        return $default;
     }
 
     /**
@@ -219,7 +219,7 @@ class Arr {
         {
             if ( ! is_array($array) || ! array_key_exists($segment, $array))
             {
-                return value($default);
+                return $default;
             }
 
             $array = $array[$segment];

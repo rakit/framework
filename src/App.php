@@ -1,8 +1,14 @@
-<?php namespace App\Framework;
+<?php namespace Rakit\Framework;
 
 use ArrayAccess;
+use Rakit\Framework\Http\Request;
+use Rakit\Framework\Http\Response;
+use Rakit\Framework\Router\Route;
+use Rakit\Framework\Router\Router;
 
 class App implements ArrayAccess {
+
+    use MacroableTrait;
 
     const VERSION = '0.0.1';
 
@@ -10,11 +16,13 @@ class App implements ArrayAccess {
 
     protected static $default_instance = 'default';
 
-    protected $container;
+    public $container;
 
     protected $name;
 
     protected $booted = false;
+
+    protected $middlewares = array();
 
     /**
      * Constructor
@@ -26,12 +34,14 @@ class App implements ArrayAccess {
     public function __construct($name, array $configs = array())
     {
         $this->name = $name;
+        $default_configs = [];
         $configs = array_merge($default_configs, $configs);
 
         $this->container = new Container;
         $this->container['app'] = $this;
         $this->config = new Configurator($configs);
         $this->router = new Router($this); 
+        $this->hook = new Hook($this);
         $this->request = new Request($this);
         $this->response = new Response($this);
 
@@ -40,6 +50,8 @@ class App implements ArrayAccess {
         if(count(static::$instances) == 1) {
             static::setDefaultInstance($name);
         }
+
+        $this->registerDefaultMacros();
     }
 
     /**
@@ -51,7 +63,7 @@ class App implements ArrayAccess {
      */
     public function middleware($name, $callable)
     {
-         
+        $this->middleware[$name] = $callable;
     }
 
     /**
@@ -113,6 +125,18 @@ class App implements ArrayAccess {
     {
         return $this->route('DELETE', $uri, $action);
     }
+    
+    /**
+     * Register DELETE route
+     * 
+     * @param   string $uri
+     * @param   mixed $action
+     * @return  Rakit\Framework\Routing\Route
+     */
+    public function group($prefix, $action)
+    {
+        return call_user_func_array([$this->router, 'group'], func_get_args());
+    }
 
     /**
      * Registering a route
@@ -160,7 +184,9 @@ class App implements ArrayAccess {
         $matched_route = $this->router->findMatch($path, $method);
 
         if(!$matched_route) {
-            return $this->notFound();
+            $this->notFound();
+            $this->response->send();
+            return;
         }
 
         $this->request->setRoute($matched_route);
@@ -238,48 +264,66 @@ class App implements ArrayAccess {
         $app = $this;
         $actions = array_merge($middlewares, [$controller]);
         $index_controller = count($actions)-1;
-        foreach($actions as $i => $act) {
+
+        foreach($actions as $i => $action) {
             $index = $i+1;
             $type = $i == $index_controller? 'controller' : 'middleware';
-            $callable = $type == 'middleware'? $this->resolveMiddleware($action) : $this->resolveCallable($action);
-            $curr_key = 'app.action.'.($index);
-            $next_key = 'app.action.'.($index+1);
-            
-            // register action into container
-            $app[$curr_key] = function() use ($app, $type, $callable, $next_key) {
-                $next = $app[$next_key];
+            $this->registerAction($index, $action, $type);
+        };
+    }
 
-                // if type of action is controller, parameter should be route params
-                if($type == 'controller') 
-                {
-                    $matched_route = $app->request->route();
-                    $params = $matched_route->params;
-                } 
-                else // parameter middleware should be Request, Response, $next 
-                {
-                    $params = [$app->request, $app->response, $next];
-                }
+    /**
+     * Register an action into container
+     *
+     * @param   int $index
+     * @param   callable $action
+     * @param   string $type
+     * @return  void
+     */
+    protected function registerAction($index, $action, $type)
+    {
+        $callable = $type == 'middleware'? $this->resolveMiddleware($action) : $this->resolveController($action);
+        $curr_key = 'app.action.'.($index);
+        $next_key = 'app.action.'.($index+1);
+        
+        $app[$curr_key] = function() use ($app, $type, $callable, $next_key) {
+            $next = $app[$next_key];
 
-                ob_start();
-                // it should be null|array|string|Response
-                $result = $app->container->call($callable, $params);
-                $dump_string = ob_get_clean();
-
-                if (
-                    ($type == 'middleware' AND is_null($result) AND $next)
-                    OR 
-                    ($type == 'controller' AND $next)
-                ) {
-                    if(empty($result) OR is_string($result)) {
-                        $app->response->appendBody($dump_string.$result);
-                    }
-
-                    $result = $next();
-                }
-
-                return $result;
+            // if type of action is controller, parameter should be route params
+            if($type == 'controller') 
+            {
+                $matched_route = $app->request->route();
+                $params = $matched_route->params;
+            } 
+            else // parameter middleware should be Request, Response, $next 
+            {
+                $params = [$app->request, $app->response, $next];
             }
-        }
+
+            ob_start();
+            // it should be null|array|string|Response
+            $result = $app->container->call($callable, $params);
+            $dump_string = ob_get_clean();
+
+            $app->response->body .= $dump_string;
+            if(is_string($result) OR is_numeric($result)) {
+                $app->response->body .= $result;
+            }
+
+            if (
+                ($type == 'middleware' AND is_null($result) AND $next)
+                OR 
+                ($type == 'controller' AND $next)
+            ) {
+                if(empty($result) OR is_string($result) OR is_numeric($result)) {
+                    $app->response->body .= $dump_string.$result;
+                }
+
+                $result = $next();
+            }
+
+            return $result;
+        };
     }
 
     /**
@@ -291,6 +335,123 @@ class App implements ArrayAccess {
     {
         $action = $this->container['app.action.1'];
         return $action? $action() : null;
+    }
+
+    /**
+     * Resolving middleware action
+     */
+    protected function resolveMiddleware($middleware_action)
+    {
+        if(is_string($middleware_action)) {
+            $explode_params = explode(':', $middleware_action);
+                
+            $middleware_name = $explode_params[0];
+            $params = isset($explode_params[1])? explode(',', $explode_params[1]) : [];
+
+            // if middleware is registered, get middleware
+            if(array_key_exists($middleware_name, $this->middlewares)) {
+                // Get middleware. so now, callable should be string Foo@bar, Closure, or function name
+                $callable = $this->middlewares[$middleware_name];
+            } else {
+                // othwewise, middleware_name should be Foo@bar or Foo
+                $callable = $middleware_name;
+            }
+
+            return $this->resolveCallable($callable, $params);
+        } else {
+            return $this->resolveCallable($middleware_action);
+        }
+    }
+
+    protected function resolveController($controller_action)
+    {
+        return $this->resolveCallable($controller_action);
+    }
+
+    /**
+     * Register default macros
+     */
+    protected function registerDefaultMacros()
+    {
+        static::macro('resolveCallable', function($unresolved_callable, array $params = array()) {
+            if(is_string($unresolved_callable)) {
+                // in case "Foo@bar:baz,qux", baz and qux should be parameters, separate it!
+                $explode_params = explode(':', $unresolved_callable);
+                
+                $unresolved_callable = $explode_params[0];
+                if(isset($explode_params[1])) {
+                    $params = array_merge($params, explode(',', $explode_params[1]));  
+                } 
+
+                // now $unresolved_callable should be "Foo@bar" or "foo",
+                // if there is '@' character, transform it to array class callable
+                $explode_method = explode('@', $unresolved_callable);
+                if(isset($explode_method[1])) {
+                    $callable = [$explode_method[0], $explode_method[1]];
+                } else {
+                    // otherwise, just leave it as string, maybe that was function name
+                    $callable = $explode_method[0];
+                }
+            } else {
+                $callable = $unresolved_callable;
+            }
+
+            $app = $this;
+            
+            // last.. wrap callable in Closure
+            return function() use ($app, $callable, $params) {
+                return $app->container->call($callable, $params);                    
+            };
+        });
+
+        static::macro('baseUrl', function($uri) {
+            $uri = '/'.trim($uri, '/');
+            $base_url = trim($this->config->get('app.base_url', 'http://localhost:8000'), '/');
+
+            return $base_url.$uri;
+        });
+
+        static::macro('indexUrl', function($uri) {
+            $uri = trim($uri, '/');
+            $index_file = trim($this->config->get('app.index_file', ''), '/');
+            return $this->baseUrl($index_file.'/'.$uri);  
+        });
+        
+        static::macro('routeUrl', function($route_name, array $params = array()) {
+            if($route_name instanceof Route) {
+                $route = $route_name;
+            } else {
+                $route = $app->router->findRouteByName($route_name);        
+                if(! $route) {
+                    throw new \Exception("Trying to get url from unregistered route named '{$route_name}'");
+                }
+            }
+
+            $path = $route->getPath();
+            $path = str_replace(['(',')'], '', $path);
+            foreach($params as $param => $value) {
+                $path = preg_replace('/:'.$param.'\??/', $value, $path);
+            }
+
+            $path = preg_replace('/\/?\:[a-zA-Z0-9._-]+/','', $path);
+
+            return $this->indexUrl($path);
+        });
+        
+        static::macro('redirect', function($defined_url) {
+            if(preg_match('http(s)?\:\/\/', $defined_url)) {
+                $url = $defined_url;
+            } elseif($this->router->findRouteByName($defined_url)) {
+                $url = $this->routeUrl($defined_url);
+            } else {
+                $url = $this->indexUrl($defined_url);
+            }
+
+            $this->hook->apply('response.redirect', [$url, $defined_url]);
+
+            header("Location: ".$url);
+            exit();
+        });
     }
 
     /**

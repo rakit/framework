@@ -1,5 +1,7 @@
 <?php namespace Rakit\Framework;
 
+use Rakit\Framework\Util\Arr;
+
 class Hook {
 
     protected $hooks;
@@ -17,11 +19,12 @@ class Hook {
         foreach($actions as $action) {
             $id = uniqid();
             $path = $event.'.'.$id;
-            $hooks[$id] = [
-                'action' => $action, 
-                'limit' => $limit, 
-                'path' => $path
-            ];
+            $hook = new \stdClass;
+            $hook->action = $action;
+            $hook->limit = $limit;
+            $hook->path = $path;
+
+            $hooks[$id] = $hook;
         }
 
         $this->hooks->set($event, $hooks);
@@ -53,19 +56,19 @@ class Hook {
         $results = [];
 
         foreach($hooks as $hook) {
-            $this->applyHook($hook);
+            $results[] = $this->applyHook($hook, $params);
         }
 
         return $results;
     }
 
-    protected function applyHook($hook)
+    protected function applyHook($hook, $params)
     {
-        $path = $hook['path'];
-        $limit = $hook['limit'];
-        $action = $hook['action'];
+        $path = $hook->path;
+        $limit = $hook->limit;
+        $action = $this->resolveCallable($hook->action, $params);
 
-        $results[] = $this->run($action, $params);
+        $result = $this->app->container->call($action, $params);
 
         if(is_int($limit)) {
             $limit -= 1;
@@ -73,9 +76,11 @@ class Hook {
             if($limit < 1) {
                 $this->hooks->remove($path);
             } else {
-                $this->hooks->set($path.'.limit', $limit);
+                $hook->limit = $limit;
             }
         }
+
+        return $result;
     }
 
     public function resolveCallable($callable, $params)

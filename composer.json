@@ -8,6 +8,11 @@
             "email": "emsifa@gmail.com"
         }
     ],
+    "autoload": {
+        "psr-4": {
+            "Rakit\\Framework\\": "src/"
+        }
+    },
     "minimum-stability": "dev",
     "require": {},
     "require-dev": {

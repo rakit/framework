@@ -25,6 +25,7 @@ class Bag implements ArrayAccess {
      * @return  boolean
      */
     public function has($key) {
+        $key = $this->resolveKey($key);
         return Arr::has($this->items, $key);
     }
 
@@ -36,6 +37,8 @@ class Bag implements ArrayAccess {
      * @return  self
      */
     public function set($key, $value) {
+        $key = $this->resolveKey($key);
+
         if(is_array($key)) {
             $this->items = $key;
         } else {
@@ -53,6 +56,8 @@ class Bag implements ArrayAccess {
      * @return  mixed
      */
     public function get($key, $default = null) {
+        $key = $this->resolveKey($key);
+
         return Arr::get($this->items, $key, $default);
     }
      
@@ -63,6 +68,8 @@ class Bag implements ArrayAccess {
      * @return  self
      */
     public function remove($key) {
+        $key = $this->resolveKey($key);
+
         Arr::remove($this->items, $key);
         return $this;
     }
@@ -74,14 +81,16 @@ class Bag implements ArrayAccess {
      * @param   mixed $default
      * @return  array
      */
-    public function only(array $keys, $default = null)
+    public function only($keys, $result_array = false)
     {
-        $items = [];
+        $keys = (array) $keys;
+        $bag = new static;
         foreach($keys as $key) {
-            $items[$key] = $this->get($key, $default);
+            $key = $this->resolveKey($key);
+            $bag[$key] = $this->get($key);
         }
 
-        return $items;
+        return $result_array? $bag->all() : $bag;
     }
 
     /**
@@ -90,14 +99,22 @@ class Bag implements ArrayAccess {
      * @param   array $keys
      * @return  array
      */
-    public function except($keys)
+    public function except($keys, $result_array = false)
     {
-        $items = $this->all(false);
-        foreach($keys as $key) {
-            Arr::remove($items, $key);
+        $keys = (array) $keys;
+        $bag = new static;
+
+        foreach($this->all(false) as $key => $value) {
+            $key = $this->resolveKey($key);
+            $bag->set($key, $value);
         }
 
-        return $items;
+        foreach($keys as $key) {
+            $key = $this->resolveKey($key);
+            $bag->remove($key);
+        }
+
+        return $result_array? $bag->all() : $bag;
     }
 
     /**
@@ -142,6 +159,10 @@ class Bag implements ArrayAccess {
         return count($values);
     }
 
+    public function resolveKey($key)
+    {
+        return $key;
+    }
 
     /**
      * ---------------------------------------------------------------------------------------

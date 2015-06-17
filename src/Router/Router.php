@@ -4,6 +4,8 @@ use Closure;
 
 class Router {
 
+    use MacroableTrait;
+
     /**
      * List registered routes
      * @var array
@@ -107,20 +109,20 @@ class Router {
      * @param   string $path
      * @return  Route
      */
-    public function register($methods, $path)
+    public function register($methods, $path, $controller)
     {
         if ( ! empty($this->group_paths)) {
             $prefix = implode("/", $this->group_paths);
             
             $path = preg_replace('/[\/]+/', '/', $prefix.$path);
 
-            $route = new Route($methods, $path);
+            $route = new Route($methods, $path, $controller);
 
             foreach($this->curr_groups as $group) {
                 $group->registerRoute($route);
             }
         } else {
-            $route = new Route($methods, $path);
+            $route = new Route($methods, $path, $controller);
         }
 
         $this->routes[] = $route;
@@ -134,9 +136,9 @@ class Router {
      * @param   string $path
      * @return  Route
      */
-    public function get($path)
+    public function get($path, $controller)
     {
-        return $this->register('GET', $path);
+        return $this->register('GET', $path, $controller);
     }
 
     /**
@@ -145,9 +147,9 @@ class Router {
      * @param   string $path
      * @return  Route
      */
-    public function post($path)
+    public function post($path, $controller)
     {
-        return $this->register('POST', $path);
+        return $this->register('POST', $path, $controller);
     }
 
     /**
@@ -156,9 +158,9 @@ class Router {
      * @param   string $path
      * @return  Route
      */
-    public function put($path)
+    public function put($path, $controller)
     {
-        return $this->register('PUT', $path);
+        return $this->register('PUT', $path, $controller);
     }
 
     /**
@@ -167,9 +169,9 @@ class Router {
      * @param   string $path
      * @return  Route
      */
-    public function patch($path)
+    public function patch($path, $controller)
     {
-        return $this->register('PATCH', $path);
+        return $this->register('PATCH', $path, $controller);
     }
 
     /**
@@ -178,9 +180,9 @@ class Router {
      * @param   string $path
      * @return  Route
      */
-    public function delete($path)
+    public function delete($path, $controller)
     {
-        return $this->register('DELETE', $path);
+        return $this->register('DELETE', $path, $controller);
     }
 
     /**
@@ -246,8 +248,7 @@ class Router {
      */
     public function findMatch($path, $method = null)
     {
-        $path = '/'.$this->resolvePath($path);
-        if ($path == '/') $path = '';
+        $path = $this->resolvePath($path);
 
         foreach($this->routes as $route) {
             $regex = $this->routePathToRegex($route);

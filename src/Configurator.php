@@ -2,6 +2,8 @@
 
 class Configurator extends Bag {
 
+    use MacroableTrait;
+
     /**
      * Load configs from directory
      *

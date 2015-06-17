@@ -1,6 +1,10 @@
 <?php namespace Rakit\Framework\Router;
 
+use Rakit\Framework\MacroableTrait;
+
 class Route {
+
+    use MacroableTrait;
 
     /**
      * Route path
@@ -38,14 +42,15 @@ class Route {
      * @param   string
      * @return  void
      */
-    public function __construct($allowed_methods, $action)
+    public function __construct($allowed_methods, $path, $action)
     {
         $args = func_get_args();
         $allowed_methods = array_shift($args);
+        $path = array_shift($args);
         $action = array_pop($args);
         $middlewares = $args;
 
-        $this->allowed_methods = $allowed_methods;
+        $this->allowed_methods = (array) $allowed_methods;
         $this->action = $action;
         $this->middlewares = $middlewares;
         $this->path = $path;
@@ -113,6 +118,11 @@ class Route {
     public function allowMethod($method)
     {
         $methods = (array) $method;
+
+        foreach($methods as $i => $method) {
+            $methods[$i] = $this->resolveMethodName($method);
+        }
+
         $this->allowed_methods = array_merge($this->allowed_methods, $methods);
 
         return $this;
@@ -151,6 +161,72 @@ class Route {
         } else {
             $this->middlewares = array_merge($this->middlewares, $middlewares);
         }
+    }
+
+    /**
+     * Check if route is GET
+     *
+     * @return bool
+     */
+    public function isGet()
+    {
+        return $this->isAllowing("GET");   
+    }
+
+    /**
+     * Check if route is POST
+     *
+     * @return bool
+     */
+    public function isPost()
+    {
+        return $this->isAllowing("POST");   
+    }
+
+    /**
+     * Check if route is PUT
+     *
+     * @return bool
+     */
+    public function isPut()
+    {
+        return $this->isAllowing("PUT");   
+    }
+
+    /**
+     * Check if route is PATCH
+     *
+     * @return bool
+     */
+    public function isPatch()
+    {
+        return $this->isAllowing("PATCH");   
+    }
+
+    /**
+     * Check if route is DELETE
+     *
+     * @return bool
+     */
+    public function isDelete()
+    {
+        return $this->isAllowing("DELETE");   
+    }
+
+    /**
+     * Check if route allowing given method
+     *
+     * @return bool
+     */
+    public function isAllowing($method)
+    {
+        $method = $this->resolveMethodName($method);
+        return in_array($method, $this->getAllowedMethods());
+    }
+
+    protected function resolveMethodName($method)
+    {
+        return strtoupper($method);
     }
 
 }
