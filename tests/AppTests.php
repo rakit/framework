@@ -15,7 +15,6 @@ class AppTests extends PHPUnit_Framework_TestCase {
         $this->app = null;
     }
 
-
     public function testCheckDependencies()
     {
         $this->assertTrue($this->app->container->has('config'));
@@ -46,9 +45,21 @@ class AppTests extends PHPUnit_Framework_TestCase {
         $this->assertTrue($routePatch instanceof Route AND $routePatch->isPatch());
         $this->assertTrue($routeDelete instanceof Route AND $routeDelete->isDelete());
         $this->assertTrue(!empty($this->app->router->findRoutes('/group/one')));
-        $this->assertTrue(!empty($this->app->router->findMatch('/group/one', 'GET')));
+        $this->assertTrue($this->app->router->findMatch('/group/one', 'GET') instanceof Route);
 
         $this->assertTrue(count($this->app->router->getRoutes()) === 6);
+    }
+
+    public function testSimpleRequest()
+    {
+        
+    }
+
+    protected function getOutput(\Closure $callback)
+    {
+        ob_start();
+        $callback();
+        return ob_get_clean();
     }
 
 }

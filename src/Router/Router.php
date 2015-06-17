@@ -1,6 +1,7 @@
 <?php namespace Rakit\Framework\Router;
 
 use Closure;
+use Rakit\Framework\MacroableTrait;
 
 class Router {
 

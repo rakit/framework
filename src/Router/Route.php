@@ -97,6 +97,26 @@ class Route {
     }
 
     /**
+     * Get registered middlewares
+     *
+     * @return  array
+     */
+    public function getMiddlewares()
+    {
+        return $this->middlewares;
+    }
+
+    /**
+     * Get route action controller
+     *
+     * @return  mixed action
+     */
+    public function getAction()
+    {
+        return $this->action;
+    }
+
+    /**
      * Set route name 
      *
      * @param   string $name

@@ -3,6 +3,7 @@
 use Rakit\Framework\App;
 use Rakit\Framework\Bag;
 use Rakit\Framework\MacroableTrait;
+use Rakit\Framework\Router\Route;
 
 class Request {
 
@@ -14,6 +15,8 @@ class Request {
     const METHOD_PATCH = 'PATCH';
     const METHOD_DELETE = 'DELETE';
 
+    protected $route;
+
     public $params = array();
 
     public function __construct(App $app, Route $route = null)
@@ -23,6 +26,18 @@ class Request {
 
         $this->inputs = new Bag((array) $_POST + (array) $_GET);
         $this->files = new Bag((array) $_FILES);
+        $this->server = new Bag($_SERVER);
+    }
+
+    public function path()
+    {
+        return $_SERVER['PATH_INFO'];
+    }
+
+    public function segment($index)
+    {
+        $paths = explode('/', $this->path());
+        return isset($paths[$index])? $paths[$index] : null;
     }
 
     public function all()
@@ -133,6 +148,11 @@ class Request {
 
         $this->params = $route->params;
         $this->route = $route;
+    }
+
+    public function route()
+    {
+        return $this->route;
     }
 
     public function isMethod($method)

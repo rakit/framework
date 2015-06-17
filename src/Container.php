@@ -146,6 +146,7 @@ class Container implements ArrayAccess {
      */
     public function call($callable, array $args = array(), array $class_args = array())
     {
+
         if(!is_callable($callable)) {
             return new InvalidArgumentException("Callable must be callable, ".gettype($callable)." given");
         }
@@ -194,6 +195,7 @@ class Container implements ArrayAccess {
 
         foreach($parameters as $i => $param) {
             $param_class = $param->getClass();
+            
             if($param_class) {
                 $classname = $param_class->getName();
                 $resolved_args[] = $this->get($classname) ?: array_shift($additional_args);

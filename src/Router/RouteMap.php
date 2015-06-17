@@ -1,5 +1,7 @@
 <?php namespace Rakit\Framework\Router;
 
+use Rakit\Framework\MacroableTrait;
+
 class RouteMap {
 
     use MacroableTrait;

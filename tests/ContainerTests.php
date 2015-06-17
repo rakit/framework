@@ -47,7 +47,7 @@ class ContainerTests extends PHPUnit_Framework_TestCase {
         $this->container = null;
     }
 
-    public function testInjectSimpleValue()
+    public function testValueInjection()
     {
         $this->container['foo'] = "bar";
 

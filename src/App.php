@@ -63,7 +63,7 @@ class App implements ArrayAccess {
      */
     public function middleware($name, $callable)
     {
-        $this->middleware[$name] = $callable;
+        $this->middlewares[$name] = $callable;
     }
 
     /**
@@ -159,7 +159,7 @@ class App implements ArrayAccess {
     {
         if($this->booted) return false;
 
-        $providers = $this->config->get('providers');
+        $providers = $this->config->get('providers', []);
         foreach($providers as $provider) {
             $this[$provider] = $this->container->make($provider);
             $this->container->call([$this[$provider], "boot"]);
@@ -189,20 +189,13 @@ class App implements ArrayAccess {
             return;
         }
 
-        $this->request->setRoute($matched_route);
+        $this->request->defineRoute($matched_route);
         $middlewares = $matched_route->getMiddlewares();
         $action = $matched_route->getAction();
         
         $this->makeActions($middlewares, $action);
-        $result = $this->runActions();
-
-        if(is_string($result)) {
-            $this->response->html($result)->send();
-        } elseif(is_array($result)) {
-            $this->response->json($result)->send();
-        } else {
-            $this->response->send();
-        }
+        $this->runActions();
+        $this->response->send();
     }
 
     /**
@@ -282,48 +275,37 @@ class App implements ArrayAccess {
      */
     protected function registerAction($index, $action, $type)
     {
-        $callable = $type == 'middleware'? $this->resolveMiddleware($action) : $this->resolveController($action);
         $curr_key = 'app.action.'.($index);
         $next_key = 'app.action.'.($index+1);
+
+        $app = $this;
         
-        $app[$curr_key] = function() use ($app, $type, $callable, $next_key) {
+        $app[$curr_key] = $app->container->protect(function() use ($app, $type, $action, $next_key, $curr_key) {
             $next = $app[$next_key];
 
-            // if type of action is controller, parameter should be route params
+            // if type of action is controller, default parameters should be route params
             if($type == 'controller') 
             {
                 $matched_route = $app->request->route();
                 $params = $matched_route->params;
+                $callable = $this->resolveController($action, $params);
             } 
-            else // parameter middleware should be Request, Response, $next 
+            else // parameter middleware should be Request, Response, $next
             {
                 $params = [$app->request, $app->response, $next];
+                $callable = $this->resolveMiddleware($action, $params);
             }
 
-            ob_start();
-            // it should be null|array|string|Response
-            $result = $app->container->call($callable, $params);
-            $dump_string = ob_get_clean();
+            $returned = $app->container->call($callable);
 
-            $app->response->body .= $dump_string;
-            if(is_string($result) OR is_numeric($result)) {
-                $app->response->body .= $result;
+            if(is_array($returned)) {
+                $app->response->json($returned);
+            } elseif(is_string($returned)) {
+                $app->response->html($returned);
             }
 
-            if (
-                ($type == 'middleware' AND is_null($result) AND $next)
-                OR 
-                ($type == 'controller' AND $next)
-            ) {
-                if(empty($result) OR is_string($result) OR is_numeric($result)) {
-                    $app->response->body .= $dump_string.$result;
-                }
-
-                $result = $next();
-            }
-
-            return $result;
-        };
+            return $app->response->body;
+        });
     }
 
     /**
@@ -340,13 +322,15 @@ class App implements ArrayAccess {
     /**
      * Resolving middleware action
      */
-    protected function resolveMiddleware($middleware_action)
+    public function resolveMiddleware($middleware_action, $params)
     {
         if(is_string($middleware_action)) {
             $explode_params = explode(':', $middleware_action);
                 
             $middleware_name = $explode_params[0];
-            $params = isset($explode_params[1])? explode(',', $explode_params[1]) : [];
+            if(isset($explode_params[1])) {
+                $params = array_merge(explode(',', $explode_params[1]), $params);
+            }
 
             // if middleware is registered, get middleware
             if(array_key_exists($middleware_name, $this->middlewares)) {
@@ -359,11 +343,11 @@ class App implements ArrayAccess {
 
             return $this->resolveCallable($callable, $params);
         } else {
-            return $this->resolveCallable($middleware_action);
+            return $this->resolveCallable($middleware_action, $params);
         }
     }
 
-    protected function resolveController($controller_action)
+    public function resolveController($controller_action)
     {
         return $this->resolveCallable($controller_action);
     }

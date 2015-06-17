@@ -71,10 +71,12 @@ class Response {
 
     public $body = "";
 
+    public $dump_output = "";
+
     public function __construct(App $app)
     {
         $this->app = $app;
-        $this->headers = new Bag;
+        $this->headers = new ResponseHeaderBag;
         $this->reset();
     }
 
@@ -117,7 +119,7 @@ class Response {
         $json = json_encode($data);
         $this->setContentType(static::CONTENT_TYPE_JSON);
         $this->setStatus($status);
-        $this->body .= $json;
+        $this->body = $json;
 
         return $this;
     }
@@ -125,8 +127,8 @@ class Response {
     public function html($content, $status = null)
     {
         $this->setContentType(static::CONTENT_TYPE_HTML);
-        $this->setStatuc($status);
-        $this->body .= $content;
+        $this->setStatus($status);
+        $this->body = $content;
 
         return $this;
     }
@@ -152,6 +154,7 @@ class Response {
     public function clean()
     {
         $this->body = "";
+        $this->dump_output = "";
         return $this;
     }
 
@@ -177,7 +180,7 @@ class Response {
 
     protected function writeHeaders()
     {
-        $headers = $this->header->all(false);
+        $headers = $this->headers->all(false);
 
         // http://stackoverflow.com/questions/6163970/set-response-status-code
         header("HTTP/1.1 ".$this->http_status_messages[$this->status], true, $this->status);
