@@ -69,67 +69,72 @@ class App implements ArrayAccess {
     /**
      * Register GET route
      * 
-     * @param   string $uri
+     * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
      */
-    public function get($uri, $action)
+    public function get($path, $action)
     {
-        return $this->route('GET', $uri, $action);
+        $args = array_merge(['GET'], func_get_args());
+        return call_user_func_array([$this, 'route'], $args);
     }
 
     /**
      * Register POST route
      * 
-     * @param   string $uri
+     * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
      */
-    public function post($uri, $action)
+    public function post($path, $action)
     {
-        return $this->route('POST', $uri, $action);
+        $args = array_merge(['POST'], func_get_args());
+        return call_user_func_array([$this, 'route'], $args);
     }
 
     /**
      * Register PUT route
      * 
-     * @param   string $uri
+     * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
      */
-    public function put($uri, $action)
+    public function put($path, $action)
     {
-        return $this->route('PUT', $uri, $action);
+        $args = array_merge(['PUT'], func_get_args());
+        return call_user_func_array([$this, 'route'], $args);
     }
 
     /**
      * Register PATCH route
      * 
-     * @param   string $uri
+     * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
      */
-    public function patch($uri, $action)
+    public function patch($path, $action)
     {
-        return $this->route('PATCH', $uri, $action);
+        $args = array_merge(['PATCH'], func_get_args());
+        return call_user_func_array([$this, 'route'], $args);
     }
 
     /**
      * Register DELETE route
      * 
-     * @param   string $uri
+     * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
      */
-    public function delete($uri, $action)
+    public function delete($path, $action)
     {
-        return $this->route('DELETE', $uri, $action);
+        $args = array_merge(['DELETE'], func_get_args());
+        return call_user_func_array([$this, 'route'], $args);
     }
     
     /**
      * Register DELETE route
      * 
-     * @param   string $uri
+     * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
      */
@@ -141,13 +146,13 @@ class App implements ArrayAccess {
     /**
      * Registering a route
      * 
-     * @param   string $uri
+     * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
      */
-    public function route($methods, $uri, $action)
+    public function route($methods, $path, $action)
     {
-        return $this->router->register($methods, $uri, $action);
+        return call_user_func_array([$this->router, 'register'], func_get_args());
     }
 
     /**
@@ -175,18 +180,18 @@ class App implements ArrayAccess {
      * @param   string $method
      * @return  void
      */
-    public function run($path = null, $method = null)
+    public function run($method = null, $path = null)
     {
         $this->boot();
 
         $path = $path ?: $this->request->path();
-        $method = $method ?: $this->request->server['request_method'];
+        $method = $method ?: $this->request->server['REQUEST_METHOD'];
         $matched_route = $this->router->findMatch($path, $method);
 
         if(!$matched_route) {
             $this->notFound();
             $this->response->send();
-            return;
+            return $this;
         }
 
         $this->request->defineRoute($matched_route);
@@ -196,10 +201,23 @@ class App implements ArrayAccess {
         $this->makeActions($middlewares, $action);
         $this->runActions();
         $this->response->send();
+
+        return $this;
     }
 
     /**
-     * Set/get notFound handler
+     * Stop application
+     *
+     * @return void
+     */
+    public function stop()
+    {
+        $this->hook->apply("app.exit", [$this]);
+        exit();
+    }
+
+    /**
+     * Set/Run notFound handler
      * 
      * @param   mixed $callable
      * @return  void
@@ -209,7 +227,14 @@ class App implements ArrayAccess {
         if($callable) {
             $this['notFoundHandler'] = $callable;
         } else {
-            return $this['notFoundHandler']($this);
+            $this->response->setStatus(404);
+            $this->hook->apply('response.notFound', [$this]);
+
+            if($this['notFoundHandler']) {
+                return $this['notFoundHandler'];
+            } else {
+                return $this->response->send("Error 404! page not found");
+            }
         }
     }
 
@@ -288,6 +313,12 @@ class App implements ArrayAccess {
             {
                 $matched_route = $app->request->route();
                 $params = $matched_route->params;
+
+                if($matched_route->getPath() == "/foo/:bar/:baz") {
+                    var_dump($params);
+                    exit();
+                }
+
                 $callable = $this->resolveController($action, $params);
             } 
             else // parameter middleware should be Request, Response, $next
@@ -322,14 +353,14 @@ class App implements ArrayAccess {
     /**
      * Resolving middleware action
      */
-    public function resolveMiddleware($middleware_action, $params)
+    public function resolveMiddleware($middleware_action, array $params = array())
     {
         if(is_string($middleware_action)) {
             $explode_params = explode(':', $middleware_action);
                 
             $middleware_name = $explode_params[0];
             if(isset($explode_params[1])) {
-                $params = array_merge(explode(',', $explode_params[1]), $params);
+                $params = array_merge($params, explode(',', $explode_params[1]));
             }
 
             // if middleware is registered, get middleware
@@ -347,9 +378,9 @@ class App implements ArrayAccess {
         }
     }
 
-    public function resolveController($controller_action)
+    public function resolveController($controller_action, array $params = array())
     {
-        return $this->resolveCallable($controller_action);
+        return $this->resolveCallable($controller_action, $params);
     }
 
     /**
@@ -358,6 +389,11 @@ class App implements ArrayAccess {
     protected function registerDefaultMacros()
     {
         static::macro('resolveCallable', function($unresolved_callable, array $params = array()) {
+            // if($this->request->route() AND $this->request->route()->getPath() == "/foo/:bar/:baz") {
+            //     var_dump($params);
+            //     exit();
+            // }
+
             if(is_string($unresolved_callable)) {
                 // in case "Foo@bar:baz,qux", baz and qux should be parameters, separate it!
                 $explode_params = explode(':', $unresolved_callable);
@@ -388,17 +424,17 @@ class App implements ArrayAccess {
             };
         });
 
-        static::macro('baseUrl', function($uri) {
-            $uri = '/'.trim($uri, '/');
+        static::macro('baseUrl', function($path) {
+            $path = '/'.trim($path, '/');
             $base_url = trim($this->config->get('app.base_url', 'http://localhost:8000'), '/');
 
-            return $base_url.$uri;
+            return $base_url.$path;
         });
 
-        static::macro('indexUrl', function($uri) {
-            $uri = trim($uri, '/');
+        static::macro('indexUrl', function($path) {
+            $path = trim($path, '/');
             $index_file = trim($this->config->get('app.index_file', ''), '/');
-            return $this->baseUrl($index_file.'/'.$uri);  
+            return $this->baseUrl($index_file.'/'.$path);  
         });
         
         static::macro('routeUrl', function($route_name, array $params = array()) {
@@ -434,6 +470,11 @@ class App implements ArrayAccess {
             $this->hook->apply('response.redirect', [$url, $defined_url]);
 
             header("Location: ".$url);
+            exit();
+        });
+
+        static::macro('dd', function() {
+            var_dump(func_get_args());
             exit();
         });
     }

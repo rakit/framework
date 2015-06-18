@@ -42,18 +42,12 @@ class Route {
      * @param   string
      * @return  void
      */
-    public function __construct($allowed_methods, $path, $action)
+    public function __construct($allowed_methods, $path, $action, array $middlewares = array())
     {
-        $args = func_get_args();
-        $allowed_methods = array_shift($args);
-        $path = array_shift($args);
-        $action = array_pop($args);
-        $middlewares = $args;
-
         $this->allowed_methods = (array) $allowed_methods;
+        $this->path = $path;
         $this->action = $action;
         $this->middlewares = $middlewares;
-        $this->path = $path;
     }
 
     /**

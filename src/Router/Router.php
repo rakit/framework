@@ -112,18 +112,27 @@ class Router {
      */
     public function register($methods, $path, $controller)
     {
+        $args = func_get_args();
+
+        if (count($args) > 3) {
+            $middlewares = (array) $args[2];
+            $controller = $args[3];
+        } else {
+            $middlewares = array();
+        }
+
         if ( ! empty($this->group_paths)) {
             $prefix = implode("/", $this->group_paths);
             
             $path = preg_replace('/[\/]+/', '/', $prefix.$path);
 
-            $route = new Route($methods, $path, $controller);
+            $route = new Route($methods, $path, $controller, $middlewares);
 
             foreach($this->curr_groups as $group) {
                 $group->registerRoute($route);
             }
         } else {
-            $route = new Route($methods, $path, $controller);
+            $route = new Route($methods, $path, $controller, $middlewares);
         }
 
         $this->routes[] = $route;
@@ -139,7 +148,8 @@ class Router {
      */
     public function get($path, $controller)
     {
-        return $this->register('GET', $path, $controller);
+        $args = array_merge(['GET'], func_get_args());
+        return call_user_func_array([$this, 'register'], $args);
     }
 
     /**
@@ -150,7 +160,8 @@ class Router {
      */
     public function post($path, $controller)
     {
-        return $this->register('POST', $path, $controller);
+        $args = array_merge(['POST'], func_get_args());
+        return call_user_func_array([$this, 'register'], $args);
     }
 
     /**
@@ -161,7 +172,8 @@ class Router {
      */
     public function put($path, $controller)
     {
-        return $this->register('PUT', $path, $controller);
+        $args = array_merge(['PUT'], func_get_args());
+        return call_user_func_array([$this, 'register'], $args);
     }
 
     /**
@@ -172,7 +184,8 @@ class Router {
      */
     public function patch($path, $controller)
     {
-        return $this->register('PATCH', $path, $controller);
+        $args = array_merge(['PATCH'], func_get_args());
+        return call_user_func_array([$this, 'register'], $args);
     }
 
     /**
@@ -183,7 +196,8 @@ class Router {
      */
     public function delete($path, $controller)
     {
-        return $this->register('DELETE', $path, $controller);
+        $args = array_merge(['DELETE'], func_get_args());
+        return call_user_func_array([$this, 'register'], $args);
     }
 
     /**

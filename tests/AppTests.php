@@ -50,15 +50,11 @@ class AppTests extends PHPUnit_Framework_TestCase {
         $this->assertTrue(count($this->app->router->getRoutes()) === 6);
     }
 
-    public function testSimpleRequest()
-    {
-        
-    }
-
-    protected function getOutput(\Closure $callback)
+    protected function runAndGetOutput($method, $path)
     {
         ob_start();
-        $callback();
+        $this->app->run($method, $path);
+        $this->app->response->reset();
         return ob_get_clean();
     }
 

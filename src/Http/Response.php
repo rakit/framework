@@ -73,6 +73,8 @@ class Response {
 
     public $dump_output = "";
 
+    protected $has_sent = false;
+
     public function __construct(App $app)
     {
         $this->app = $app;
@@ -145,6 +147,8 @@ class Response {
 
     public function reset()
     {
+        $this->has_sent = false;
+
         return $this
             ->setContentType(static::CONTENT_TYPE_HTML)
             ->setStatus(200)
@@ -160,6 +164,8 @@ class Response {
 
     public function send($output = null, $status = null)
     {
+        if($this->has_sent) return;
+
         if($output) {
             $this->body .= $output;
         }
@@ -168,14 +174,13 @@ class Response {
             $this->setStatus($status);
         }
 
-        $this->writeHeaders();
-
         $this->app->hook->apply("response.before_send", [$this, $this->app]);
 
+        $this->writeHeaders();
         echo $this->body;
-        
+
+        $this->has_sent = true;
         $this->app->hook->apply("response.after_send", [$this, $this->app]);
-        exit();
     }
 
     protected function writeHeaders()
