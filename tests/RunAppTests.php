@@ -219,11 +219,11 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $res->json(['body' => $res->body]);
         });
 
-        $this->app->get("/foo", ['foobar', 'uppercase', 'jsonify'], function(Request $request) {
+        $this->app->get("/foo", ['foobar', 'jsonify', 'uppercase'], function(Request $request) {
             return $request->foobar."bazQux";
         });
 
-        $this->assertEquals('{"BODY":"FOOBARBAZQUX"}', $this->runAndGetOutput("GET", "/foo"));
+        $this->assertEquals('{"body":"FOOBARBAZQUX"}', $this->runAndGetOutput("GET", "/foo"));
     }
 
     /**
