@@ -12,9 +12,9 @@ Saat ini Rakit Framework masih dalam tahap pengembangan.
 * RESTful Routing
 * Route Middleware (with params)
 * Hook
-* Constructor Injection
-* Callable Injection
+* Automatic Resolution (Constructor Injection and Callable Injection)
 * Lazy loading
+* Easy file upload
 
 ## Basic Examples
 
@@ -220,3 +220,7 @@ $app->run();
 > Object yang dapet diinject kedalam constructor atau callable adalah Object yang terdaftar dalam container aplikasi.
 (baca: mendaftarkan object ke dalam container)
 
+
+## Coming soon
+
+Saat ini rakit framework masih dalam pengembangan, beberapa test belum ditambahkan. 
