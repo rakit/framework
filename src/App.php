@@ -5,6 +5,7 @@ use Rakit\Framework\Http\Request;
 use Rakit\Framework\Http\Response;
 use Rakit\Framework\Router\Route;
 use Rakit\Framework\Router\Router;
+use Rakit\Framework\View\View;
 
 class App implements ArrayAccess {
 
@@ -24,6 +25,10 @@ class App implements ArrayAccess {
 
     protected $middlewares = array();
 
+    protected $waiting_list_providers = array();
+
+    protected $providers = array();
+
     /**
      * Constructor
      * 
@@ -38,12 +43,12 @@ class App implements ArrayAccess {
         $configs = array_merge($default_configs, $configs);
 
         $this->container = new Container;
-        $this->container['app'] = $this;
-        $this->config = new Configurator($configs);
-        $this->router = new Router($this); 
-        $this->hook = new Hook($this);
-        $this->request = new Request($this);
-        $this->response = new Response($this);
+        $this['app'] = $this;
+        $this['config'] = new Configurator($configs);
+        $this['router'] = new Router($this); 
+        $this['hook'] = new Hook($this);
+        $this['request'] = new Request($this);
+        $this['response'] = new Response($this);
 
         static::$instances[$name] = $this;
 
@@ -51,7 +56,24 @@ class App implements ArrayAccess {
             static::setDefaultInstance($name);
         }
 
+        $this->registerBaseHooks();
         $this->registerDefaultMacros();
+        $this->registerBaseProviders();
+    }
+
+    /**
+     * Register a Service Provider into waiting lists
+     *
+     * @param   string $class
+     */
+    public function provide($class)
+    {
+        $this->providers[$class] = $provider = $this->container->make($class);
+        if(false === $provider instanceof Provider) {
+            throw new \InvalidArgumentException("Provider {$class} must be instance of Rakit\\Framework\\Provider", 1);
+        }
+
+        $provider->register();
     }
 
     /**
@@ -164,12 +186,14 @@ class App implements ArrayAccess {
     {
         if($this->booted) return false;
 
-        $providers = $this->config->get('providers', []);
+        $providers = $this->providers;
         foreach($providers as $provider) {
-            $this[$provider] = $this->container->make($provider);
-            $this->container->call([$this[$provider], "boot"]);
+            $provider->boot();
         }
 
+        // reset providers, we don't need them anymore
+        $this->providers = [];
+        
         return $this->booted = true;
     }
 
@@ -314,11 +338,6 @@ class App implements ArrayAccess {
                 $matched_route = $app->request->route();
                 $params = $matched_route->params;
 
-                if($matched_route->getPath() == "/foo/:bar/:baz") {
-                    var_dump($params);
-                    exit();
-                }
-
                 $callable = $this->resolveController($action, $params);
             } 
             else // parameter middleware should be Request, Response, $next
@@ -384,16 +403,33 @@ class App implements ArrayAccess {
     }
 
     /**
+     * Register base hooks
+     */
+    protected function registerBaseHooks()
+    {
+     
+    }
+
+    /**
+     * Register base providers
+     */
+    public function registerBaseProviders()
+    {
+        $base_providers = [
+            'Rakit\Framework\View\ViewServiceProvider',
+        ];
+
+        foreach($base_providers as $provider_class) {
+            $this->provide($provider_class);
+        }
+    }
+
+    /**
      * Register default macros
      */
     protected function registerDefaultMacros()
     {
         static::macro('resolveCallable', function($unresolved_callable, array $params = array()) {
-            // if($this->request->route() AND $this->request->route()->getPath() == "/foo/:bar/:baz") {
-            //     var_dump($params);
-            //     exit();
-            // }
-
             if(is_string($unresolved_callable)) {
                 // in case "Foo@bar:baz,qux", baz and qux should be parameters, separate it!
                 $explode_params = explode(':', $unresolved_callable);
@@ -417,7 +453,7 @@ class App implements ArrayAccess {
             }
 
             $app = $this;
-            
+
             // last.. wrap callable in Closure
             return function() use ($app, $callable, $params) {
                 return $app->container->call($callable, $params);                    

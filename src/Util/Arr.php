@@ -2,11 +2,12 @@
 
 /**
  * Array utilities
- * --------------------------------------------------
- * most function here adapted from Arr class Laravel
+ * ---------------------------------------------------------------------
+ * most function here adapted from Illuminate\Support\Arr class Laravel
  *
  */
-class Arr {
+class Arr 
+{
 
     /**
      * Add an element to an array using "dot" notation if it doesn't exist.

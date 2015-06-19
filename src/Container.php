@@ -153,8 +153,7 @@ class Container implements ArrayAccess {
 
         if(is_array($callable)) {
             list($class, $method) = $callable;
-            $object = is_object($class)? $class : $this->make($class, $class_args);
-            $reflection = new ReflectionMethod($object, $method);
+            $reflection = new ReflectionMethod($class, $method);
         } else {
             $reflection = new ReflectionFunction($callable);
         }
@@ -205,6 +204,33 @@ class Container implements ArrayAccess {
         }
 
         return $resolved_args;
+    }
+
+    /**
+     * Get Callable dependencies
+     *
+     * @return  array Class dependencies
+     */
+    public static function getCallableDependencies($callable)
+    {
+        if(is_array($callable)) {
+            list($class, $method) = $callable;
+            $reflection = new ReflectionMethod($class, $method);
+        } else {
+            $reflection = new ReflectionFunction($callable);
+        }
+
+        $parameters = $reflection->getParameters();
+
+        $dependencies = [];
+
+        foreach($parameters as $param) {
+            if($param->getClass()) {
+                $dependencies[] = $param->getClass()->getName();
+            }
+        }
+
+        return $dependencies;
     }
 
     /**
