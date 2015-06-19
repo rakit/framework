@@ -11,9 +11,4 @@ abstract class Provider {
 
     abstract public function boot();
 
-    public function when()
-    {
-        return [];
-    }
-
 }
