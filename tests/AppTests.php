@@ -21,6 +21,7 @@ class AppTests extends PHPUnit_Framework_TestCase {
         $this->assertTrue($this->app->container->has('request'));
         $this->assertTrue($this->app->container->has('response'));
         $this->assertTrue($this->app->container->has('hook'));
+        $this->assertTrue($this->app->container->has('view'));
     }
 
     public function testRegisterRoutes()
@@ -48,14 +49,6 @@ class AppTests extends PHPUnit_Framework_TestCase {
         $this->assertTrue($this->app->router->findMatch('/group/one', 'GET') instanceof Route);
 
         $this->assertTrue(count($this->app->router->getRoutes()) === 6);
-    }
-
-    protected function runAndGetOutput($method, $path)
-    {
-        ob_start();
-        $this->app->run($method, $path);
-        $this->app->response->reset();
-        return ob_get_clean();
     }
 
 }

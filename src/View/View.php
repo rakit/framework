@@ -13,7 +13,7 @@ class View {
     public function __construct(App $app, ViewEngineInterface $engine = null)
     {
         $this->app = $app;
-        $engine = $engine ?: new BasicViewEngine($app->config['view.path']);
+        $this->setEngine($engine ?: new BasicViewEngine($app->config['view.path']));
     }
 
     public function setEngine(ViewEngineInterface $engine)

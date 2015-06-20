@@ -1,7 +1,9 @@
 <?php
 
 use Rakit\Framework\App;
+use Rakit\Framework\Exceptions\HttpNotFoundException;
 use Rakit\Framework\Http\Request;
+use Rakit\Framework\Http\Response;
 use Rakit\Framework\Router\Route;
 
 class RunAppTests extends PHPUnit_Framework_TestCase {
@@ -37,8 +39,8 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
     {
         $app = $this->app;
 
-        $this->app->notFound(function() use ($app){
-            $app->response->send("Not Found!");
+        $this->app->exception(function(HttpNotFoundException $e, App $app) {
+            return $app->response->setStatus(404)->html("Not Found!");
         });
 
         $this->app->get("/", function() {
@@ -241,6 +243,51 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
         });
 
         $this->assertEquals('controller ignored', $this->runAndGetOutput("GET", "/foo"));
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
+    public function testResponseView()
+    {
+        $this->app->config['view.path'] = __DIR__.'/resources/views';
+
+        $this->app->get("/hello", function(Response $response) {
+            return $response->view('hello.php');
+        });
+
+        $this->assertEquals('<h1>Hello World!</h1>', $this->runAndGetOutput("GET", "/hello"));
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
+    public function testPassDataIntoView()
+    {
+        $this->app->config['view.path'] = __DIR__.'/resources/views';
+
+        $this->app->get("/hello", function(Response $response) {
+            return $response->view('hello-name.php', [
+                'name' => 'John'
+            ]);
+        });
+
+        $this->assertEquals('<h1>Hello John!</h1>', $this->runAndGetOutput("GET", "/hello"));
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
+    public function testException()
+    {
+        $this->app->get("/error", function(Response $response) {
+            throw new \Exception("Error!", 1);
+        });
+
+        $this->assertEquals('Error!', $this->runAndGetOutput("GET", "/error"));
     }
 
     protected function runAndGetOutput($method, $path)

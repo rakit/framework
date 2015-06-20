@@ -25,7 +25,7 @@ class BasicViewEngine implements ViewEngineInterface {
             ob_start();
             include($__file);
             return ob_get_clean();
-        }
+        };
 
         return $render($view_file, $data);
     }

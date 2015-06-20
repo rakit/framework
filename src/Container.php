@@ -1,7 +1,6 @@
 <?php namespace Rakit\Framework;
 
 use ArrayAccess;
-use Iterator;
 use Closure;
 use ReflectionClass;
 use ReflectionMethod;
@@ -25,11 +24,12 @@ class Container implements ArrayAccess {
 
         // wrap non-closure value in a closure
         if(false === $value instanceof Closure) {
-            // register classname into container (if value is object)
+            // if value is object, register classname into container
             if(is_object($value)) {
                 $keys[] = get_class($value);
             }
 
+            // wrap value in Closure
             $value = function() use ($value) {
                 return $value;
             };

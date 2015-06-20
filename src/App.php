@@ -1,6 +1,11 @@
 <?php namespace Rakit\Framework;
 
 use ArrayAccess;
+use Closure;
+use Exception;
+use InvalidArgumentException;
+use Rakit\Framework\Exceptions\HttpErrorException;
+use Rakit\Framework\Exceptions\HttpNotFoundException;
 use Rakit\Framework\Http\Request;
 use Rakit\Framework\Http\Response;
 use Rakit\Framework\Router\Route;
@@ -28,6 +33,8 @@ class App implements ArrayAccess {
     protected $waiting_list_providers = array();
 
     protected $providers = array();
+
+    protected $exception_handlers = array();
 
     /**
      * Constructor
@@ -70,7 +77,7 @@ class App implements ArrayAccess {
     {
         $this->providers[$class] = $provider = $this->container->make($class);
         if(false === $provider instanceof Provider) {
-            throw new \InvalidArgumentException("Provider {$class} must be instance of Rakit\\Framework\\Provider", 1);
+            throw new InvalidArgumentException("Provider {$class} must be instance of Rakit\\Framework\\Provider", 1);
         }
 
         $provider->register();
@@ -206,27 +213,66 @@ class App implements ArrayAccess {
      */
     public function run($method = null, $path = null)
     {
-        $this->boot();
+        try {
+            $this->boot();
 
-        $path = $path ?: $this->request->path();
-        $method = $method ?: $this->request->server['REQUEST_METHOD'];
-        $matched_route = $this->router->findMatch($path, $method);
+            $path = $path ?: $this->request->path();
+            $method = $method ?: $this->request->server['REQUEST_METHOD'];
+            $matched_route = $this->router->findMatch($path, $method);
 
-        if(!$matched_route) {
-            $this->notFound();
+            if(!$matched_route) {
+                throw new HttpNotFoundException();
+            }
+
+            $this->request->defineRoute($matched_route);
+            $middlewares = $matched_route->getMiddlewares();
+            $action = $matched_route->getAction();
+            
+            $this->makeActions($middlewares, $action);
+            $this->runActions();
             $this->response->send();
+
+            return $this;
+        } catch (Exception $e) {
+            $exception_class = get_class($e);
+            $exception_classes = array_values(class_parents($exception_class));
+            array_unshift($exception_classes, $exception_class);
+
+            $handler = null;
+            foreach($exception_classes as $xclass) {
+                if(array_key_exists($xclass, $this->exception_handlers)) {
+                    $handler = $this->exception_handlers[$xclass];
+                    break;
+                }
+            }
+
+            if(!$handler) {
+                $handler = function(Exception $e, App $app) {
+                    return $app->response->html($e->getMessage());
+                };
+            }
+
+            $this->hook->apply('error', [$e]);
+            $this->container->call($handler, [$e]);
+            $this->response->send();
+
             return $this;
         }
+    }
 
-        $this->request->defineRoute($matched_route);
-        $middlewares = $matched_route->getMiddlewares();
-        $action = $matched_route->getAction();
-        
-        $this->makeActions($middlewares, $action);
-        $this->runActions();
-        $this->response->send();
+    /**
+     * Handle specified exception
+     */
+    public function exception(Closure $fn)
+    {
+        $dependencies = Container::getCallableDependencies($fn);
+        $exception_class = $dependencies[0];
 
-        return $this;
+        if(is_subclass_of($exception_class, 'Exception') OR $exception_class == 'Exception') {
+            $this->exception_handlers[$exception_class] = $fn;
+        } else {
+            throw new InvalidArgumentException("Parameter 1 of exception handler must be instanceof Exception or Exception itself", 1);
+        }
     }
 
     /**
@@ -241,36 +287,27 @@ class App implements ArrayAccess {
     }
 
     /**
-     * Set/Run notFound handler
-     * 
-     * @param   mixed $callable
-     * @return  void
+     * Not Found
      */
-    public function notFound($callable = null)
+    public function notFound()
     {
-        if($callable) {
-            $this['notFoundHandler'] = $callable;
-        } else {
-            $this->response->setStatus(404);
-            $this->hook->apply('response.notFound', [$this]);
-
-            if($this['notFoundHandler']) {
-                return $this['notFoundHandler'];
-            } else {
-                return $this->response->send("Error 404! page not found");
-            }
-        }
+        throw new HttpNotFoundException();
     }
 
     /**
-     * Set/get error handler
+     * Abort app
      * 
-     * @param   mixed $callable
+     * @param   int $status
+     * 
      * @return  void
      */
-    public function error($callable)
+    public function abort($status, $message = null)
     {
-        
+        if($status == 404) {
+            throw new HttpNotFoundException;
+        } else {
+            throw new HttpErrorException;
+        }
     }
 
     /**
