@@ -42,12 +42,13 @@ class Route {
      * @param   string
      * @return  void
      */
-    public function __construct($allowed_methods, $path, $action, array $middlewares = array())
+    public function __construct($allowed_methods, $path, $action, array $middlewares = array(), array $conditions = array())
     {
         $this->allowed_methods = (array) $allowed_methods;
-        $this->path = $path;
+        $this->path = $this->resolvePath($path);
         $this->action = $action;
         $this->middlewares = $middlewares;
+        $this->conditions = $conditions;
     }
 
     /**
@@ -151,13 +152,7 @@ class Route {
      */
     public function where($param, $regex)
     {
-        if(is_array($param)) {
-            $this->conditions = $param;
-            return;
-        }
-
-        $this->conditions[$param] = $condition;
-
+        $this->conditions[$param] = $regex;
         return $this;
     }
 
@@ -167,14 +162,10 @@ class Route {
      * @param   string|array $middlewares
      * @return  void
      */
-    public function middleware($middlewares, $append = 'append')
+    public function middleware($middlewares)
     {
-        $middlewares = (array) $middlewares;
-        if('prepend' == $append) {
-            $this->middlewares = array_merge($middlewares, $this->middlewares);
-        } else {
-            $this->middlewares = array_merge($this->middlewares, $middlewares);
-        }
+        $this->middlewares = array_merge($this->middlewares, (array) $middlewares);
+        return $this;
     }
 
     /**
@@ -238,9 +229,31 @@ class Route {
         return in_array($method, $this->getAllowedMethods());
     }
 
+    /**
+     * Resolve method name
+     *
+     * @return string
+     */
     protected function resolveMethodName($method)
     {
         return strtoupper($method);
+    }
+
+    /**
+     * Resolve path
+     *
+     * @return string
+     */
+    protected function resolvePath($path)
+    {
+        return '/'.trim($path, '/');
+    }
+
+    public function __call($method, $params)
+    {
+        $params = implode(',', $params);
+        $middleware = $method.':'.$params;
+        return $this->middleware($middleware);
     }
 
 }

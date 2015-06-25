@@ -121,12 +121,17 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testRouteParam()
     {
+        $this->app->exception(function(HttpNotFoundException $e, App $app) {
+            return $app->response->setStatus(404)->html("Not Found!");
+        });
+
         $this->app->get("/hello/:name/:age", function($name, $age) {
             return $name."-".$age;
         });
 
         $this->assertEquals("foo-12", $this->runAndGetOutput("GET", "/hello/foo/12"));
         $this->assertEquals("bar-24", $this->runAndGetOutput("GET", "/hello/bar/24"));
+        $this->assertEquals("Not Found!", $this->runAndGetOutput("GET", "/hello/bar"));
     }
 
     /**
@@ -147,6 +152,24 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      * @runInSeparateProcess
      * @preserveGlobalState enabled
      */
+    public function testRouteParamCondition()
+    {
+        $this->app->exception(function(HttpNotFoundException $e, App $app) {
+            return $app->response->setStatus(404)->html("Not Found!");
+        });
+
+        $this->app->get("/hello/:name/:age", function($name, $age = 1) {
+            return $name."-".$age;
+        })->where('age', '\d+');
+
+        $this->assertEquals("foo-12", $this->runAndGetOutput("GET", "/hello/foo/12"));
+        $this->assertEquals("Not Found!", $this->runAndGetOutput("GET", "/hello/bar/baz"));
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
     public function testMiddlewareBefore()
     {
         $this->app->middleware('foobar', function($req, $res, $next) {
@@ -154,9 +177,9 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $next();
         });
 
-        $this->app->get("/foo", ['foobar'], function(Request $request) {
+        $this->app->get("/foo", function(Request $request) {
             return $request->foobar;
-        });
+        })->middleware('foobar');
 
         $this->assertEquals("foobar", $this->runAndGetOutput("GET", "/foo"));
     }
@@ -172,9 +195,9 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return strtoupper($res->body);
         });
 
-        $this->app->get("/foo", ['uppercase'], function(Request $request) {
+        $this->app->get("/foo", function(Request $request) {
             return "foo";
-        });
+        })->uppercase();
 
         $this->assertEquals("FOO", $this->runAndGetOutput("GET", "/foo"));
     }
@@ -193,9 +216,9 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return strtoupper($res->body);
         });
 
-        $this->app->get("/foo", ['uppercase'], function(Request $request) {
+        $this->app->get("/foo", function(Request $request) {
             return $request->foobar."bazQux";
-        });
+        })->uppercase();
 
         $this->assertEquals("FOOBARBAZQUX", $this->runAndGetOutput("GET", "/foo"));
     }
@@ -204,10 +227,28 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      * @runInSeparateProcess
      * @preserveGlobalState enabled
      */
+    public function testMiddlewareParam()
+    {
+        $this->app->middleware('setStr', function($req, $res, $next, $str) {
+            $req->str = $str;
+            return $next();
+        });
+
+        $this->app->get("/foo", function(Request $request) {
+            return $request->str;
+        })->setStr('foobar');
+
+        $this->assertEquals("foobar", $this->runAndGetOutput("GET", "/foo"));
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
     public function testMultipleMiddleware()
     {
-        $this->app->middleware('foobar', function($req, $res, $next) {
-            $req->foobar = "foobar";
+        $this->app->middleware('setStr', function($req, $res, $next, $str) {
+            $req->str = $str;
             return $next();
         });
 
@@ -221,9 +262,9 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $res->json(['body' => $res->body]);
         });
 
-        $this->app->get("/foo", ['foobar', 'jsonify', 'uppercase'], function(Request $request) {
-            return $request->foobar."bazQux";
-        });
+        $this->app->get("/foo", function(Request $request) {
+            return $request->str."bazQux";
+        })->setStr('foobar')->jsonify()->uppercase();
 
         $this->assertEquals('{"body":"FOOBARBAZQUX"}', $this->runAndGetOutput("GET", "/foo"));
     }
@@ -238,11 +279,67 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return "controller ignored";
         });
 
-        $this->app->get("/foo", ['no-controller'], function(Request $request) {
+        $this->app->get("/foo", function(Request $request) {
             return "foobar";
-        });
+        })->middleware('no-controller');
 
         $this->assertEquals('controller ignored', $this->runAndGetOutput("GET", "/foo"));
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
+    public function testRouteGroup()
+    {
+        $this->app->group('/group', function($group) {
+
+            $group->get('/hello', function() {
+                return "IM IN GROUP";
+            });
+
+        });
+
+        $this->assertEquals("IM IN GROUP", $this->runAndGetOutput("GET", "/group/hello"));
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
+    public function testRouteGroupParamCondition()
+    {
+        $this->app->group('/u/:username', function($group) {
+
+            $group->get('/profile', function($username, Request $request) {
+                return $username.' profile';
+            });
+
+        })->where('username', '[a-zA-Z_]+');
+
+        $this->assertEquals("foobar profile", $this->runAndGetOutput("GET", "/u/foobar/profile"));
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
+    public function testRouteGroupMiddleware()
+    {
+        $this->app->middleware('setStr', function($req, $res, $next, $str) {
+            $req->str = $str;
+            return $next();
+        });
+
+        $this->app->group('/group', function($group) {
+
+            $group->get('/hello', function(Request $req) {
+                return $req->str;
+            });
+
+        })->setStr('foobar');
+
+        $this->assertEquals("foobar", $this->runAndGetOutput("GET", "/group/hello"));
     }
 
     /**

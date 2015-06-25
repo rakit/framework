@@ -36,8 +36,8 @@ class AppTests extends PHPUnit_Framework_TestCase {
         $routePatch = $this->app->patch("/patch", $action);
         $routeDelete = $this->app->delete("/delete", $action);
 
-        $routeGroup = $this->app->group("/group", function($route) use ($action) {
-            $route->get("/one", $action);
+        $routeGroup = $this->app->group("/group", function($group) use ($action) {
+            $group->get("/one", $action);
         });
 
         $this->assertTrue($routeGet instanceof Route AND $routeGet->isGet());
@@ -45,10 +45,8 @@ class AppTests extends PHPUnit_Framework_TestCase {
         $this->assertTrue($routePut instanceof Route AND $routePut->isPut());
         $this->assertTrue($routePatch instanceof Route AND $routePatch->isPatch());
         $this->assertTrue($routeDelete instanceof Route AND $routeDelete->isDelete());
-        $this->assertTrue(!empty($this->app->router->findRoutes('/group/one')));
         $this->assertTrue($this->app->router->findMatch('/group/one', 'GET') instanceof Route);
-
-        $this->assertTrue(count($this->app->router->getRoutes()) === 6);
+        $this->assertEquals(6, count($this->app->router->getRoutes()));
     }
 
 }

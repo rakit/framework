@@ -104,8 +104,7 @@ class App implements ArrayAccess {
      */
     public function get($path, $action)
     {
-        $args = array_merge(['GET'], func_get_args());
-        return call_user_func_array([$this, 'route'], $args);
+        return $this->route('GET', $path, $action);
     }
 
     /**
@@ -117,8 +116,7 @@ class App implements ArrayAccess {
      */
     public function post($path, $action)
     {
-        $args = array_merge(['POST'], func_get_args());
-        return call_user_func_array([$this, 'route'], $args);
+        return $this->route('POST', $path, $action);
     }
 
     /**
@@ -130,8 +128,7 @@ class App implements ArrayAccess {
      */
     public function put($path, $action)
     {
-        $args = array_merge(['PUT'], func_get_args());
-        return call_user_func_array([$this, 'route'], $args);
+        return $this->route('PUT', $path, $action);
     }
 
     /**
@@ -143,8 +140,7 @@ class App implements ArrayAccess {
      */
     public function patch($path, $action)
     {
-        $args = array_merge(['PATCH'], func_get_args());
-        return call_user_func_array([$this, 'route'], $args);
+        return $this->route('PATCH', $path, $action);
     }
 
     /**
@@ -156,20 +152,19 @@ class App implements ArrayAccess {
      */
     public function delete($path, $action)
     {
-        $args = array_merge(['DELETE'], func_get_args());
-        return call_user_func_array([$this, 'route'], $args);
+        return $this->route('DELETE', $path, $action);
     }
     
     /**
-     * Register DELETE route
+     * Register Group route
      * 
      * @param   string $path
-     * @param   mixed $action
+     * @param   Closure $grouper
      * @return  Rakit\Framework\Routing\Route
      */
-    public function group($prefix, $action)
+    public function group($prefix, Closure $grouper)
     {
-        return call_user_func_array([$this->router, 'group'], func_get_args());
+        return $this->router->group($prefix, $grouper);
     }
 
     /**
@@ -181,7 +176,7 @@ class App implements ArrayAccess {
      */
     public function route($methods, $path, $action)
     {
-        return call_user_func_array([$this->router, 'register'], func_get_args());
+        return $this->router->register($methods, $path, $action);
     }
 
     /**
