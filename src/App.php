@@ -84,6 +84,28 @@ class App implements ArrayAccess {
     }
 
     /**
+     * Register hook
+     *
+     * @param   string $event
+     * @param   Closure $callable
+     */
+    public function on($event, Closure $callable)
+    {
+        return $this->hook->on($event, $callable);
+    }
+
+    /**
+     * Register hook once
+     *
+     * @param   string $event
+     * @param   Closure $callable
+     */
+    public function once($event, Closure $callable)
+    {
+        return $this->hook->once($event, $callable);
+    }
+
+    /**
      * Register a middleware
      * 
      * @param   string $name
@@ -220,6 +242,8 @@ class App implements ArrayAccess {
             }
 
             $this->request->defineRoute($matched_route);
+            $this->hook->apply(strtoupper($method), [$matched_route, $this]);
+
             $middlewares = $matched_route->getMiddlewares();
             $action = $matched_route->getAction();
             
@@ -229,10 +253,17 @@ class App implements ArrayAccess {
 
             return $this;
         } catch (Exception $e) {
+            // because we register exception by exception() method, 
+            // we will manually catch exception class
+            // first we need to get exception class
             $exception_class = get_class($e);
+
+            // then we need parent classes too
             $exception_classes = array_values(class_parents($exception_class));
             array_unshift($exception_classes, $exception_class);
 
+            // now $exception_classes should be ['CatchedException', 'CatchedExceptionParent', ..., 'Exception']
+            // next, we need to get exception handler
             $handler = null;
             foreach($exception_classes as $xclass) {
                 if(array_key_exists($xclass, $this->exception_handlers)) {
