@@ -10,10 +10,10 @@ class View {
 
     protected $data = array();
 
-    public function __construct(App $app, ViewEngineInterface $engine = null)
+    public function __construct(App $app, ViewEngineInterface $engine)
     {
         $this->app = $app;
-        $this->setEngine($engine ?: new BasicViewEngine($app->config['view.path']));
+        $this->setEngine($engine);
     }
 
     public function setEngine(ViewEngineInterface $engine)

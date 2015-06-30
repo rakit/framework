@@ -13,7 +13,7 @@ class Container implements ArrayAccess {
 
     /**
      * Register a key into container
-     * 
+     *
      * @param   string $key
      * @param   mixed $value
      * @return  Closure
@@ -43,7 +43,7 @@ class Container implements ArrayAccess {
 
     /**
      * Protect anonymous function value
-     * 
+     *
      * @param   Closure $fn
      * @return  Closure
      */
@@ -56,7 +56,7 @@ class Container implements ArrayAccess {
 
     /**
      * Wrap singleton service in a closure
-     * 
+     *
      * @param   Closure $fn
      * @return  Closure
      */
@@ -75,7 +75,7 @@ class Container implements ArrayAccess {
 
     /**
      * Check key
-     * 
+     *
      * @param   string $key
      * @return  bool
      */
@@ -86,7 +86,7 @@ class Container implements ArrayAccess {
 
     /**
      * Get value for specified key in container
-     * 
+     *
      * @param   string $key
      * @return  mixed
      */
@@ -108,7 +108,7 @@ class Container implements ArrayAccess {
 
     /**
      * Remove a key in container
-     * 
+     *
      * @param   string $key
      */
     public function remove($key)
@@ -139,14 +139,13 @@ class Container implements ArrayAccess {
 
     /**
      * Call closure or method with injecting parameters
-     * 
+     *
      * @param   callable $callable
      * @param   array $args
      * @return  mixed
      */
     public function call($callable, array $args = array(), array $class_args = array())
     {
-
         if(!is_callable($callable)) {
             return new InvalidArgumentException("Callable must be callable, ".gettype($callable)." given");
         }
@@ -154,6 +153,9 @@ class Container implements ArrayAccess {
         if(is_array($callable)) {
             list($class, $method) = $callable;
             $reflection = new ReflectionMethod($class, $method);
+            if(is_string($callable[0])) {
+                $callable[0] = $this->make($callable[0], $class_args);
+            }
         } else {
             $reflection = new ReflectionFunction($callable);
         }
@@ -194,7 +196,7 @@ class Container implements ArrayAccess {
 
         foreach($parameters as $i => $param) {
             $param_class = $param->getClass();
-            
+
             if($param_class) {
                 $classname = $param_class->getName();
                 $resolved_args[] = $this->get($classname) ?: array_shift($additional_args);

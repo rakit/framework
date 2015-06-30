@@ -32,10 +32,10 @@ class Request {
     public function path()
     {
         $path_info = $this->server->get('PATH_INFO');
-        
+
         if(!$path_info) {
             $path_info = preg_replace('#^'.dirname($_SERVER['SCRIPT_NAME']).'#', '', $_SERVER['REQUEST_URI']);
-            $path_info = strtok($path, '?');
+            $path_info = strtok($path_info, '?');
         }
 
         return $path_info;
@@ -85,7 +85,7 @@ class Request {
     }
 
     public function multiFiles($key)
-    {  
+    {
         if(!$this->hasMultiFiles($key)) return array();
 
         $input_files = array();
@@ -118,7 +118,7 @@ class Request {
     public function hasFile($key)
     {
         $file = $this->files[$key];
-        
+
         if(!$file) return FALSE;
 
         $tmp = $file["tmp_name"];
@@ -129,7 +129,7 @@ class Request {
     }
 
     public function hasMultiFiles($key)
-    {   
+    {
         $files = $this->files[$key];
 
         if(!$files) return FALSE;

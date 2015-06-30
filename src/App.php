@@ -38,7 +38,7 @@ class App implements ArrayAccess {
 
     /**
      * Constructor
-     * 
+     *
      * @param   string $name
      * @param   array $configs
      * @return  void
@@ -52,7 +52,7 @@ class App implements ArrayAccess {
         $this->container = new Container;
         $this['app'] = $this;
         $this['config'] = new Configurator($configs);
-        $this['router'] = new Router($this); 
+        $this['router'] = new Router($this);
         $this['hook'] = new Hook($this);
         $this['request'] = new Request($this);
         $this['response'] = new Response($this);
@@ -107,7 +107,7 @@ class App implements ArrayAccess {
 
     /**
      * Register a middleware
-     * 
+     *
      * @param   string $name
      * @param   mixed $callable
      * @return  void
@@ -119,7 +119,7 @@ class App implements ArrayAccess {
 
     /**
      * Register GET route
-     * 
+     *
      * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
@@ -131,7 +131,7 @@ class App implements ArrayAccess {
 
     /**
      * Register POST route
-     * 
+     *
      * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
@@ -143,7 +143,7 @@ class App implements ArrayAccess {
 
     /**
      * Register PUT route
-     * 
+     *
      * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
@@ -155,7 +155,7 @@ class App implements ArrayAccess {
 
     /**
      * Register PATCH route
-     * 
+     *
      * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
@@ -167,7 +167,7 @@ class App implements ArrayAccess {
 
     /**
      * Register DELETE route
-     * 
+     *
      * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
@@ -176,10 +176,10 @@ class App implements ArrayAccess {
     {
         return $this->route('DELETE', $path, $action);
     }
-    
+
     /**
      * Register Group route
-     * 
+     *
      * @param   string $path
      * @param   Closure $grouper
      * @return  Rakit\Framework\Routing\Route
@@ -191,7 +191,7 @@ class App implements ArrayAccess {
 
     /**
      * Registering a route
-     * 
+     *
      * @param   string $path
      * @param   mixed $action
      * @return  Rakit\Framework\Routing\Route
@@ -203,7 +203,7 @@ class App implements ArrayAccess {
 
     /**
      * Booting app
-     * 
+     *
      * @return  boolean
      */
     public function boot()
@@ -217,13 +217,13 @@ class App implements ArrayAccess {
 
         // reset providers, we don't need them anymore
         $this->providers = [];
-        
+
         return $this->booted = true;
     }
 
     /**
      * Run application
-     * 
+     *
      * @param   string $path
      * @param   string $method
      * @return  void
@@ -246,14 +246,14 @@ class App implements ArrayAccess {
 
             $middlewares = $matched_route->getMiddlewares();
             $action = $matched_route->getAction();
-            
+
             $this->makeActions($middlewares, $action);
             $this->runActions();
             $this->response->send();
 
             return $this;
         } catch (Exception $e) {
-            // because we register exception by exception() method, 
+            // because we register exception by exception() method,
             // we will manually catch exception class
             // first we need to get exception class
             $exception_class = get_class($e);
@@ -322,9 +322,9 @@ class App implements ArrayAccess {
 
     /**
      * Abort app
-     * 
+     *
      * @param   int $status
-     * 
+     *
      * @return  void
      */
     public function abort($status, $message = null)
@@ -359,7 +359,7 @@ class App implements ArrayAccess {
 
     /**
      * Make/build app actions
-     * 
+     *
      * @param   array $middlewares
      * @param   mixed $controller
      * @return  void
@@ -391,18 +391,18 @@ class App implements ArrayAccess {
         $next_key = 'app.action.'.($index+1);
 
         $app = $this;
-        
+
         $app[$curr_key] = $app->container->protect(function() use ($app, $type, $action, $next_key, $curr_key) {
             $next = $app[$next_key];
 
             // if type of action is controller, default parameters should be route params
-            if($type == 'controller') 
+            if($type == 'controller')
             {
                 $matched_route = $app->request->route();
                 $params = $matched_route->params;
 
                 $callable = $this->resolveController($action, $params);
-            } 
+            }
             else // parameter middleware should be Request, Response, $next
             {
                 $params = [$app->request, $app->response, $next];
@@ -423,7 +423,7 @@ class App implements ArrayAccess {
 
     /**
      * Run actions
-     * 
+     *
      * @return  void
      */
     protected function runActions()
@@ -439,7 +439,7 @@ class App implements ArrayAccess {
     {
         if(is_string($middleware_action)) {
             $explode_params = explode(':', $middleware_action);
-                
+
             $middleware_name = $explode_params[0];
             if(isset($explode_params[1])) {
                 $params = array_merge($params, explode(',', $explode_params[1]));
@@ -470,7 +470,7 @@ class App implements ArrayAccess {
      */
     protected function registerBaseHooks()
     {
-     
+
     }
 
     /**
@@ -496,11 +496,11 @@ class App implements ArrayAccess {
             if(is_string($unresolved_callable)) {
                 // in case "Foo@bar:baz,qux", baz and qux should be parameters, separate it!
                 $explode_params = explode(':', $unresolved_callable);
-                
+
                 $unresolved_callable = $explode_params[0];
                 if(isset($explode_params[1])) {
-                    $params = array_merge($params, explode(',', $explode_params[1]));  
-                } 
+                    $params = array_merge($params, explode(',', $explode_params[1]));
+                }
 
                 // now $unresolved_callable should be "Foo@bar" or "foo",
                 // if there is '@' character, transform it to array class callable
@@ -519,7 +519,7 @@ class App implements ArrayAccess {
 
             // last.. wrap callable in Closure
             return function() use ($app, $callable, $params) {
-                return $app->container->call($callable, $params);                    
+                return $app->container->call($callable, $params);
             };
         });
 
@@ -530,17 +530,21 @@ class App implements ArrayAccess {
             return $base_url.$path;
         });
 
+        static::macro('asset', function($path) {
+            return $this->baseUrl($path);
+        });
+
         static::macro('indexUrl', function($path) {
             $path = trim($path, '/');
             $index_file = trim($this->config->get('app.index_file', ''), '/');
-            return $this->baseUrl($index_file.'/'.$path);  
+            return $this->baseUrl($index_file.'/'.$path);
         });
-        
+
         static::macro('routeUrl', function($route_name, array $params = array()) {
             if($route_name instanceof Route) {
                 $route = $route_name;
             } else {
-                $route = $app->router->findRouteByName($route_name);        
+                $route = $this->router->findRouteByName($route_name);
                 if(! $route) {
                     throw new \Exception("Trying to get url from unregistered route named '{$route_name}'");
                 }
@@ -556,7 +560,7 @@ class App implements ArrayAccess {
 
             return $this->indexUrl($path);
         });
-        
+
         static::macro('redirect', function($defined_url) {
             if(preg_match('http(s)?\:\/\/', $defined_url)) {
                 $url = $defined_url;
