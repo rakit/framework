@@ -91,7 +91,7 @@ class RouteGroup {
      */
     public function post($path, $controller)
     {
-        return $this->register('GET', $path, $controller);
+        return $this->register('POST', $path, $controller);
     }
 
     /**
