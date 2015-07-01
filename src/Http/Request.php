@@ -34,11 +34,13 @@ class Request {
         $path_info = $this->server->get('PATH_INFO');
 
         if(!$path_info) {
-            $path_info = preg_replace('#^'.dirname($_SERVER['SCRIPT_NAME']).'#', '', $_SERVER['REQUEST_URI']);
-            $path_info = strtok($path_info, '?');
+            $request_uri = $this->server->get('REQUEST_URI');
+            $script_name = $this->server->get('SCRIPT_NAME');
+            $path_info = str_replace($script_name, '', $request_uri);
+            $path_info = strtok($path_info, '?') ?: '';
         }
 
-        return $path_info;
+        return '/'.trim($path_info, '/');
     }
 
     public function segment($index)

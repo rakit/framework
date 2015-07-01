@@ -34,7 +34,7 @@ class RouteGroup {
 
     /**
      * Get route collections
-     * 
+     *
      * @return array of Rakit\Framework\Router\Route
      */
     public function getRoutes()
@@ -141,6 +141,8 @@ class RouteGroup {
         $conditions = $this->getConditions();
         $group = new RouteGroup($path, $grouper, $middlewares, $conditions);
 
+        $this->groups[] = $group;
+
         return $group;
     }
 
@@ -159,7 +161,7 @@ class RouteGroup {
 
     /**
      * Append middlewares
-     * 
+     *
      * @param mixed     $middlewares
      * @return void
      */

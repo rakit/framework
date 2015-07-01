@@ -449,15 +449,27 @@ class App implements ArrayAccess {
             if(array_key_exists($middleware_name, $this->middlewares)) {
                 // Get middleware. so now, callable should be string Foo@bar, Closure, or function name
                 $callable = $this->middlewares[$middleware_name];
+                $resolved_callable = $this->resolveCallable($callable, $params);
             } else {
                 // othwewise, middleware_name should be Foo@bar or Foo
                 $callable = $middleware_name;
+                $resolved_callable = $this->resolveCallable($callable, $params);
+            }
+        } else {
+            $resolved_callable = $this->resolveCallable($middleware_action, $params);
+        }
+
+        if(!is_callable($resolved_callable)) {
+            if(is_array($middleware_action)) {
+                $invalid_middleware = 'Array';
+            } else {
+                $invalid_middleware = $middleware_action;
             }
 
-            return $this->resolveCallable($callable, $params);
-        } else {
-            return $this->resolveCallable($middleware_action, $params);
+            throw new \Exception('Middleware "'.$invalid_middleware.'" is not valid middleware or it is not registered');
         }
+
+        return $resolved_callable;
     }
 
     public function resolveController($controller_action, array $params = array())
@@ -518,7 +530,7 @@ class App implements ArrayAccess {
             $app = $this;
 
             // last.. wrap callable in Closure
-            return function() use ($app, $callable, $params) {
+            return !is_callable($callable)? false : function() use ($app, $callable, $params) {
                 return $app->container->call($callable, $params);
             };
         });

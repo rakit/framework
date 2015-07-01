@@ -222,7 +222,8 @@ class Router {
 
         foreach($routes as $route) {
             $regex = $this->routePathToRegex($route);
-            $method_allowed = is_string($method)? in_array($method, $route->getAllowedMethods()) : true; 
+            $method_allowed = is_string($method)? in_array($method, $route->getAllowedMethods()) : true;
+
 
             if (@preg_match($regex, $path, $match) AND $method_allowed) {
                 $route_params = $this->getDeclaredPathParams($route);
