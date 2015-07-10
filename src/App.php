@@ -247,8 +247,11 @@ class App implements ArrayAccess {
             $middlewares = $matched_route->getMiddlewares();
             $action = $matched_route->getAction();
 
-            $this->makeActions($middlewares, $action);
-            $this->runActions();
+            $actions = $this->makeActions($middlewares, $action);
+            if(isset($actions[0])) {
+                $actions[0]();
+            }
+
             $this->response->send();
 
             return $this;
@@ -370,66 +373,15 @@ class App implements ArrayAccess {
         $actions = array_merge($middlewares, [$controller]);
         $index_controller = count($actions)-1;
 
-        foreach($actions as $i => $action) {
-            $index = $i+1;
-            $type = $i == $index_controller? 'controller' : 'middleware';
-            $this->registerAction($index, $action, $type);
-        };
-    }
+        $actions = [];
+        foreach($middlewares as $i => $action) {
+            $actions[] = new ActionMiddleware($this, $i, $action);
+        }
 
-    /**
-     * Register an action into container
-     *
-     * @param   int $index
-     * @param   callable $action
-     * @param   string $type
-     * @return  void
-     */
-    protected function registerAction($index, $action, $type)
-    {
-        $curr_key = 'app.action.'.($index);
-        $next_key = 'app.action.'.($index+1);
+        $actions[] = new ActionController($this, count($middlewares), $controller);
 
-        $app = $this;
-
-        $app[$curr_key] = $app->container->protect(function() use ($app, $type, $action, $next_key, $curr_key) {
-            $next = $app[$next_key];
-
-            // if type of action is controller, default parameters should be route params
-            if($type == 'controller')
-            {
-                $matched_route = $app->request->route();
-                $params = $matched_route->params;
-
-                $callable = $this->resolveController($action, $params);
-            }
-            else // parameter middleware should be Request, Response, $next
-            {
-                $params = [$app->request, $app->response, $next];
-                $callable = $this->resolveMiddleware($action, $params);
-            }
-
-            $returned = $app->container->call($callable);
-
-            if(is_array($returned)) {
-                $app->response->json($returned);
-            } elseif(is_string($returned)) {
-                $app->response->html($returned);
-            }
-
-            return $app->response->body;
-        });
-    }
-
-    /**
-     * Run actions
-     *
-     * @return  void
-     */
-    protected function runActions()
-    {
-        $action = $this->container['app.action.1'];
-        return $action? $action() : null;
+        $this['actions'] = $actions;
+        return $actions;
     }
 
     /**
@@ -504,7 +456,7 @@ class App implements ArrayAccess {
      */
     protected function registerDefaultMacros()
     {
-        static::macro('resolveCallable', function($unresolved_callable, array $params = array()) {
+        $this->macro('resolveCallable', function($unresolved_callable, array $params = array()) {
             if(is_string($unresolved_callable)) {
                 // in case "Foo@bar:baz,qux", baz and qux should be parameters, separate it!
                 $explode_params = explode(':', $unresolved_callable);
@@ -535,24 +487,24 @@ class App implements ArrayAccess {
             };
         });
 
-        static::macro('baseUrl', function($path) {
+        $this->macro('baseUrl', function($path) {
             $path = '/'.trim($path, '/');
             $base_url = trim($this->config->get('app.base_url', 'http://localhost:8000'), '/');
 
             return $base_url.$path;
         });
 
-        static::macro('asset', function($path) {
+        $this->macro('asset', function($path) {
             return $this->baseUrl($path);
         });
 
-        static::macro('indexUrl', function($path) {
+        $this->macro('indexUrl', function($path) {
             $path = trim($path, '/');
             $index_file = trim($this->config->get('app.index_file', ''), '/');
             return $this->baseUrl($index_file.'/'.$path);
         });
 
-        static::macro('routeUrl', function($route_name, array $params = array()) {
+        $this->macro('routeUrl', function($route_name, array $params = array()) {
             if($route_name instanceof Route) {
                 $route = $route_name;
             } else {
@@ -573,7 +525,7 @@ class App implements ArrayAccess {
             return $this->indexUrl($path);
         });
 
-        static::macro('redirect', function($defined_url) {
+        $this->macro('redirect', function($defined_url) {
             if(preg_match('http(s)?\:\/\/', $defined_url)) {
                 $url = $defined_url;
             } elseif($this->router->findRouteByName($defined_url)) {
@@ -588,9 +540,15 @@ class App implements ArrayAccess {
             exit();
         });
 
-        static::macro('dd', function() {
+
+        $this->macro('dd', function() {
             var_dump(func_get_args());
             exit();
+        });
+
+        $app = $this;
+        $this->response->macro('redirect', function($defined_url) use ($app) {
+            return $app->redirect($defined_url);
         });
     }
 

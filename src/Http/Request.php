@@ -83,7 +83,7 @@ class Request {
     public function file($key)
     {
         $_file = $this->files[$key];
-        return $_file? $this->makeInputFile($_file) : NULL;
+        return $this->hasFile($key)? $this->makeInputFile($_file) : NULL;
     }
 
     public function multiFiles($key)
