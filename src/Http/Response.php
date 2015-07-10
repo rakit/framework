@@ -174,6 +174,7 @@ class Response {
             $this->setStatus($status);
         }
 
+        $this->app->hook->apply($this->status, [$this, $this->app]);
         $this->app->hook->apply("response.before_send", [$this, $this->app]);
 
         $this->writeHeaders();
