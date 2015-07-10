@@ -256,6 +256,12 @@ class App implements ArrayAccess {
 
             return $this;
         } catch (Exception $e) {
+            if($e instanceof HttpNotFoundException) {
+                $this->response->setStatus(404);
+            } else {
+                $this->response->setStatus($e->getCode());
+            }
+
             // because we register exception by exception() method,
             // we will manually catch exception class
             // first we need to get exception class

@@ -174,6 +174,10 @@ class Response {
             $this->setStatus($status);
         }
 
+        $status_str = (string) $this->status;
+
+        $this->app->hook->apply($status_str[0].'xx', [$this, $this->app]);
+        $this->app->hook->apply($status_str[0].$status_str[1].'x', [$this, $this->app]);
         $this->app->hook->apply($this->status, [$this, $this->app]);
         $this->app->hook->apply("response.before_send", [$this, $this->app]);
 
