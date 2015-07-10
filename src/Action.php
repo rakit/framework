@@ -123,7 +123,7 @@ abstract class Action {
     {
         $app = $this->getApp();
         $callable = $this->getCallable();
-        $returned = $app->container->call($callable);
+        $returned = call_user_func($callable);
 
         if(is_array($returned)) {
             $app->response->json($returned);
