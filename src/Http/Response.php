@@ -89,10 +89,35 @@ class Response {
      */
     public function setStatus($status)
     {
+        $status = (int) $status;
         if(!array_key_exists($status, $this->http_status_messages)) return $this;
 
-        $this->status = (int) $status;
+        $this->status = $status;
         return $this;
+    }
+
+    /**
+     * get response status code
+     *
+     * @return int
+     */
+    public function getStatus()
+    {
+        return (int) $this->status;
+    }
+
+    /**
+     * Check response status code
+     *
+     * @param string|int status code, can be 4xx, 2xx, 40x, 20x, etc
+     * @return boolean
+     */
+    public function isStatus($status_code)
+    {
+        $status = (string) $this->getStatus();
+        $regex = '/'.str_replace('x', '[0-9]', $status_code).'/'; // it should be /4[0-9][0-9]/
+
+        return (preg_match($regex, $status) != 0);
     }
 
     /**
