@@ -30,6 +30,7 @@ class Debugger {
                             opacity: .5;
                             display: inline-block;
                             padding: 5px;
+                            font-size: 26px;
                         }
 
                         .w, .w ul, .w ul li {
@@ -43,7 +44,7 @@ class Debugger {
 
                         .w {
                             max-width: 600px;
-                            margin: 50px auto; 
+                            margin: 30px auto; 
                         }
 
                         .w ul {
