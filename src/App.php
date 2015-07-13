@@ -3,7 +3,9 @@
 use ArrayAccess;
 use Closure;
 use Exception;
+use ErrorException;
 use InvalidArgumentException;
+use Rakit\Framework\Exceptions\FatalErrorException;
 use Rakit\Framework\Exceptions\HttpErrorException;
 use Rakit\Framework\Exceptions\HttpNotFoundException;
 use Rakit\Framework\Http\Request;
@@ -202,6 +204,14 @@ class App implements ArrayAccess {
     }
 
     /**
+     * Handle specified exception
+     */
+    public function handle($exception_class, Closure $fn)
+    {
+        $this->exception_handlers[$exception_class] = $fn;
+    }
+
+    /**
      * Booting app
      *
      * @return  boolean
@@ -210,6 +220,8 @@ class App implements ArrayAccess {
     {
         if($this->booted) return false;
 
+        $app = $this;
+
         $providers = $this->providers;
         foreach($providers as $provider) {
             $provider->boot();
@@ -217,6 +229,35 @@ class App implements ArrayAccess {
 
         // reset providers, we don't need them anymore
         $this->providers = [];
+
+        // set error handler
+        set_error_handler(function($severity, $message, $file, $line) use ($app) {
+            if (!(error_reporting() & $severity)) {
+                return;
+            }
+
+            $exception = new ErrorException($message, 500, $severity, $file, $line);
+            $app->handleException($exception);
+            $app->stop();
+        });
+
+        // set fatal error handler
+        register_shutdown_function(function() use ($app) {
+            $error = error_get_last();
+            if($error) {
+                $errno   = $error["type"];
+                $errfile = $error["file"];
+                $errline = $error["line"];
+                $errstr  = $error["message"];
+
+                $message = "[$errno] $errstr on $errfile line $errline";
+
+                $exception = new FatalErrorException($message, 500, 1, $errfile, $errline);
+
+                $app->handleException($exception);
+                $app->stop();
+            }
+        });
 
         return $this->booted = true;
     }
@@ -256,62 +297,65 @@ class App implements ArrayAccess {
 
             return $this;
         } catch (Exception $e) {
-            $status_code = $e->getCode();
-            $status_message = $this->response->getStatusMessage($status_code);
-
-            // if status message is null, 
-            // that mean 'exception code' is not one of 'available http response status codes'
-            // so, change it to 500
-            if(!$status_message) {
-                $status_code = 500;
-            }
-
-            $this->response->setStatus($status_code);
-
-            // because we register exception by handle() method,
-            // we will manually catch exception class
-            // first we need to get exception class
-            $exception_class = get_class($e);
-
-            // then we need parent classes too
-            $exception_classes = array_values(class_parents($exception_class));
-            array_unshift($exception_classes, $exception_class);
-
-            // now $exception_classes should be ['CatchedException', 'CatchedExceptionParent', ..., 'Exception']
-            // next, we need to get exception handler
-            $handler = null;
-            foreach($exception_classes as $xclass) {
-                if(array_key_exists($xclass, $this->exception_handlers)) {
-                    $handler = $this->exception_handlers[$xclass];
-                }
-
-                $this->hook->apply($xclass, [$e, $this]);
-            }
-
-            if(!$handler) {
-                $handler = function(Exception $e, App $app) {
-                    return $app->response->html($e->getMessage());
-                };
-            }
-
-            $this->hook->apply('error', [$e, $this]);
-            $this->container->call($handler, [$e]);
-            $this->response->send();
-
-            return $this;
+            return $this->handleException($e);
         }
     }
 
-    /**
-     * Handle specified exception
-     */
-    public function handle($exception_class, Closure $fn)
+    public function handleException(Exception $e)
     {
-        if(is_subclass_of($exception_class, 'Exception') OR $exception_class == 'Exception') {
-            $this->exception_handlers[$exception_class] = $fn;
-        } else {
-            throw new InvalidArgumentException("{$exception_class} is not subclass of Exception", 1);
+        $status_code = $e->getCode();
+        $status_message = $this->response->getStatusMessage($status_code);
+
+        // if status message is null, 
+        // that mean 'exception code' is not one of 'available http response status codes'
+        // so, change it to 500
+        if(!$status_message) {
+            $status_code = 500;
         }
+
+        $this->response->setStatus($status_code);
+
+        // because we register exception by handle() method,
+        // we will manually catch exception class
+        // first we need to get exception class
+        $exception_class = get_class($e);
+
+        // then we need parent classes too
+        $exception_classes = array_values(class_parents($exception_class));
+        array_unshift($exception_classes, $exception_class);
+
+        // now $exception_classes should be ['CatchedException', 'CatchedExceptionParent', ..., 'Exception']
+        // next, we need to get exception handler
+        $custom_handler = null;
+        foreach($exception_classes as $xclass) {
+            if(array_key_exists($xclass, $this->exception_handlers)) {
+                $custom_handler = $this->exception_handlers[$xclass];
+            }
+
+            $this->hook->apply($xclass, [$e]);
+        }
+
+        $this->hook->apply('error', [$e]);
+
+        if(true === $this->config['app.debug']) {
+            $this->debugException($e);
+        } else {
+            if($custom_handler) {
+                $this->container->call($custom_handler, [$e]);
+            } elseif($e instanceof HttpNotFoundException) {
+                $this->response->html("Error 404! Page not found");
+            } else {
+                $this->response->html("Something went wrong");
+            }
+        }
+
+        $this->response->send();
+        return $this;
+    }
+
+    protected function debugException(Exception $e)
+    {
+        $this->response->html($e->getMessage());
     }
 
     /**

@@ -1,8 +1,8 @@
 <?php namespace Rakit\Framework\Exceptions;
 
-use Exception;
+use ErrorException;
 
-class HttpErrorException extends Exception {
+class HttpErrorException extends ErrorException {
 
     protected $code = 500;
 

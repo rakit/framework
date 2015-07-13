@@ -370,10 +370,27 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
     public function testException()
     {
         $this->app->get("/error", function(Response $response) {
-            throw new \Exception("Error!", 1);
+            throw new \Exception;
         });
 
-        $this->assertResponse("GET", "/error", 'Error!', 500);
+        $this->assertResponse("GET", "/error", 'Something went wrong', 500);
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
+    public function testHandleException()
+    {
+        $this->app->handle('InvalidArgumentException', function($e, Response $response) {
+            return $response->html("Invalid Argument", 501);
+        });
+
+        $this->app->get("/error", function(Response $response) {
+            throw new \InvalidArgumentException;
+        });
+
+        $this->assertResponse("GET", "/error", 'Invalid Argument', 501);
     }
 
     protected function runAndGetResponse($method, $path)
