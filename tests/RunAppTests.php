@@ -12,6 +12,11 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
 
     public function setUp() {
         $this->app = new App('test');
+
+        // handle 404
+        $this->app->on(404, function($response) {
+            return $response->setStatus(404)->html("Not Found!");
+        });
     }
 
     public function tearDown() {
@@ -38,10 +43,6 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
     public function testNotFound()
     {
         $app = $this->app;
-
-        $this->app->handle(HttpNotFoundException::class, function(App $app) {
-            return $app->response->setStatus(404)->html("Not Found!");
-        });
 
         $this->assertResponse("GET", "/unregistered-route", 'Not Found!', 404);
     }
@@ -117,10 +118,6 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testRouteParam()
     {
-        $this->app->handle(HttpNotFoundException::class, function(App $app) {
-            return $app->response->setStatus(404)->html("Not Found!");
-        });
-
         $this->app->get("/hello/:name/:age", function($name, $age) {
             return $name."-".$age;
         });
@@ -150,10 +147,6 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testRouteParamCondition()
     {
-        $this->app->handle(HttpNotFoundException::class, function(App $app) {
-            return $app->response->setStatus(404)->html("Not Found!");
-        });
-
         $this->app->get("/hello/:name/:age", function($name, $age = 1) {
             return $name."-".$age;
         })->where('age', '\d+');
