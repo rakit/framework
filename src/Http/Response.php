@@ -213,12 +213,21 @@ class Response {
         $this->app->hook->apply("response.after_send", [$this, $this->app]);
     }
 
+    public function getStatusMessage($status_code)
+    {
+        if(array_key_exists($status_code, $this->http_status_messages)) {
+            return $this->http_status_messages[$status_code];
+        } else {
+            return null;
+        }
+    }
+
     protected function writeHeaders()
     {
         $headers = $this->headers->all(false);
 
         // http://stackoverflow.com/questions/6163970/set-response-status-code
-        header("HTTP/1.1 ".$this->http_status_messages[$this->status], true, $this->status);
+        header("HTTP/1.1 ".$this->getStatusMessage($this->status), true, $this->status);
 
         foreach($headers as $key => $value) {
             $header = $this->normalizeHeaderKey($key).': '.$value;

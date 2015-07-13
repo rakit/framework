@@ -380,7 +380,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             throw new \Exception("Error!", 1);
         });
 
-        $this->assertResponse("GET", "/error", 'Error!', 200);
+        $this->assertResponse("GET", "/error", 'Error!', 500);
     }
 
     protected function runAndGetResponse($method, $path)

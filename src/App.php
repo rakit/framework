@@ -256,9 +256,19 @@ class App implements ArrayAccess {
 
             return $this;
         } catch (Exception $e) {
-            $this->response->setStatus($e->getCode());
+            $status_code = $e->getCode();
+            $status_message = $this->response->getStatusMessage($status_code);
 
-            // because we register exception by exception() method,
+            // if status message is null, 
+            // that mean 'exception code' is not one of 'available http response status codes'
+            // so, change it to 500
+            if(!$status_message) {
+                $status_code = 500;
+            }
+
+            $this->response->setStatus($status_code);
+
+            // because we register exception by handle() method,
             // we will manually catch exception class
             // first we need to get exception class
             $exception_class = get_class($e);
