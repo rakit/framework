@@ -355,7 +355,8 @@ class App implements ArrayAccess {
 
     protected function debugException(Exception $e)
     {
-        $this->response->html($e->getMessage());
+        $debugger = new Debugger;
+        $this->response->html($debugger->render($e));
     }
 
     /**
