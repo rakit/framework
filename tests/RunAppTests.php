@@ -28,7 +28,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return "Hello World!";
         });
 
-        $this->assertEquals("Hello World!", $this->runAndGetOutput("GET", "/"));
+        $this->assertResponse("GET", "/", "Hello World!", 200);
     }
 
     /**
@@ -39,15 +39,11 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
     {
         $app = $this->app;
 
-        $this->app->exception(function(HttpNotFoundException $e, App $app) {
+        $this->app->handle(HttpNotFoundException::class, function(App $app) {
             return $app->response->setStatus(404)->html("Not Found!");
         });
 
-        $this->app->get("/", function() {
-            return "Hello World!";
-        });
-
-        $this->assertEquals("Not Found!", $this->runAndGetOutput("GET", "/unregistered-route"));
+        $this->assertResponse("GET", "/unregistered-route", 'Not Found!', 404);
     }
 
     /**
@@ -60,7 +56,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return "get";
         });
 
-        $this->assertEquals("get", $this->runAndGetOutput("GET", "/foo"));
+        $this->assertResponse("GET", "/foo", 'get');
     }
 
     /**
@@ -73,7 +69,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return "post";
         });
 
-        $this->assertEquals("post", $this->runAndGetOutput("POST", "/foo"));
+        $this->assertResponse("POST", "/foo", 'post');
     }
 
     /**
@@ -86,7 +82,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return "put";
         });
 
-        $this->assertEquals("put", $this->runAndGetOutput("PUT", "/foo"));
+        $this->assertResponse("PUT", "/foo", 'put');
     }
 
     /**
@@ -99,7 +95,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return "patch";
         });
 
-        $this->assertEquals("patch", $this->runAndGetOutput("PATCH", "/foo"));
+        $this->assertResponse("PATCH", "/foo", 'patch');
     }
 
     /**
@@ -112,7 +108,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return "delete";
         });
 
-        $this->assertEquals("delete", $this->runAndGetOutput("DELETE", "/foo"));
+        $this->assertResponse("DELETE", "/foo", 'delete');
     }
 
     /**
@@ -121,7 +117,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testRouteParam()
     {
-        $this->app->exception(function(HttpNotFoundException $e, App $app) {
+        $this->app->handle(HttpNotFoundException::class, function(App $app) {
             return $app->response->setStatus(404)->html("Not Found!");
         });
 
@@ -129,9 +125,9 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $name."-".$age;
         });
 
-        $this->assertEquals("foo-12", $this->runAndGetOutput("GET", "/hello/foo/12"));
-        $this->assertEquals("bar-24", $this->runAndGetOutput("GET", "/hello/bar/24"));
-        $this->assertEquals("Not Found!", $this->runAndGetOutput("GET", "/hello/bar"));
+        $this->assertResponse("GET", "/hello/foo/12", 'foo-12');
+        $this->assertResponse("GET", "/hello/bar/24", 'bar-24');
+        $this->assertResponse("GET", "/hello/bar", 'Not Found!', 404);
     }
 
     /**
@@ -144,8 +140,8 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $name."-".$age;
         });
 
-        $this->assertEquals("foo-12", $this->runAndGetOutput("GET", "/hello/foo/12"));
-        $this->assertEquals("bar-1", $this->runAndGetOutput("GET", "/hello/bar"));
+        $this->assertResponse("GET", "/hello/foo/12", 'foo-12');
+        $this->assertResponse("GET", "/hello/bar", 'bar-1');
     }
 
     /**
@@ -154,7 +150,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testRouteParamCondition()
     {
-        $this->app->exception(function(HttpNotFoundException $e, App $app) {
+        $this->app->handle(HttpNotFoundException::class, function(App $app) {
             return $app->response->setStatus(404)->html("Not Found!");
         });
 
@@ -162,8 +158,8 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $name."-".$age;
         })->where('age', '\d+');
 
-        $this->assertEquals("foo-12", $this->runAndGetOutput("GET", "/hello/foo/12"));
-        $this->assertEquals("Not Found!", $this->runAndGetOutput("GET", "/hello/bar/baz"));
+        $this->assertResponse("GET", "/hello/foo/12", 'foo-12');
+        $this->assertResponse("GET", "/hello/bar/baz", 'Not Found!', 404);
     }
 
     /**
@@ -181,7 +177,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $request->foobar;
         })->middleware('foobar');
 
-        $this->assertEquals("foobar", $this->runAndGetOutput("GET", "/foo"));
+        $this->assertResponse("GET", "/foo", 'foobar');
     }
 
     /**
@@ -199,7 +195,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return "foo";
         })->uppercase();
 
-        $this->assertEquals("FOO", $this->runAndGetOutput("GET", "/foo"));
+        $this->assertResponse("GET", "/foo", 'FOO');
     }
 
     /**
@@ -220,7 +216,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $request->foobar."bazQux";
         })->uppercase();
 
-        $this->assertEquals("FOOBARBAZQUX", $this->runAndGetOutput("GET", "/foo"));
+        $this->assertResponse("GET", "/foo", 'FOOBARBAZQUX');
     }
 
     /**
@@ -238,7 +234,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $request->str;
         })->setStr('foobar');
 
-        $this->assertEquals("foobar", $this->runAndGetOutput("GET", "/foo"));
+        $this->assertResponse("GET", "/foo", 'foobar');
     }
 
     /**
@@ -266,7 +262,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $request->str."bazQux";
         })->setStr('foobar')->jsonify()->uppercase();
 
-        $this->assertEquals('{"body":"FOOBARBAZQUX"}', $this->runAndGetOutput("GET", "/foo"));
+        $this->assertResponse("GET", "/foo", '{"body":"FOOBARBAZQUX"}');
     }
 
     /**
@@ -283,7 +279,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return "foobar";
         })->middleware('no-controller');
 
-        $this->assertEquals('controller ignored', $this->runAndGetOutput("GET", "/foo"));
+        $this->assertResponse("GET", "/foo", 'controller ignored');
     }
 
     /**
@@ -300,7 +296,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
 
         });
 
-        $this->assertEquals("IM IN GROUP", $this->runAndGetOutput("GET", "/group/hello"));
+        $this->assertResponse("GET", "/group/hello", 'IM IN GROUP');
     }
 
     /**
@@ -317,7 +313,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
 
         })->where('username', '[a-zA-Z_]+');
 
-        $this->assertEquals("foobar profile", $this->runAndGetOutput("GET", "/u/foobar/profile"));
+        $this->assertResponse("GET", "/u/foobar/profile", 'foobar profile');
     }
 
     /**
@@ -339,7 +335,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
 
         })->setStr('foobar');
 
-        $this->assertEquals("foobar", $this->runAndGetOutput("GET", "/group/hello"));
+        $this->assertResponse("GET", "/group/hello", 'foobar');
     }
 
     /**
@@ -354,7 +350,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $response->view('hello.php');
         });
 
-        $this->assertEquals('<h1>Hello World!</h1>', $this->runAndGetOutput("GET", "/hello"));
+        $this->assertResponse("GET", "/hello", '<h1>Hello World!</h1>');
     }
 
     /**
@@ -371,7 +367,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             ]);
         });
 
-        $this->assertEquals('<h1>Hello John!</h1>', $this->runAndGetOutput("GET", "/hello"));
+        $this->assertResponse("GET", "/hello", '<h1>Hello John!</h1>');
     }
 
     /**
@@ -384,15 +380,28 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             throw new \Exception("Error!", 1);
         });
 
-        $this->assertEquals('Error!', $this->runAndGetOutput("GET", "/error"));
+        $this->assertResponse("GET", "/error", 'Error!', 200);
     }
 
-    protected function runAndGetOutput($method, $path)
+    protected function runAndGetResponse($method, $path)
     {
+        //buffer output, so output won't appear in terminal
         ob_start();
         $this->app->run($method, $path);
+        ob_end_clean();
+
+        $response = clone $this->app->response;
         $this->app->response->reset();
-        return ob_get_clean();
+
+        return $response;
+    }
+
+    protected function assertResponse($method, $path, $assert_body, $assert_status = 200)
+    {
+        $response = $this->runAndGetResponse($method, $path);
+
+        $this->assertEquals($response->body, $assert_body);  
+        $this->assertEquals($response->getStatus(), $assert_status);
     }
 
 }
