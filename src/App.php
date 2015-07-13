@@ -273,8 +273,9 @@ class App implements ArrayAccess {
             foreach($exception_classes as $xclass) {
                 if(array_key_exists($xclass, $this->exception_handlers)) {
                     $handler = $this->exception_handlers[$xclass];
-                    break;
                 }
+
+                $this->hook->apply($xclass, [$e, $this]);
             }
 
             if(!$handler) {
@@ -283,7 +284,7 @@ class App implements ArrayAccess {
                 };
             }
 
-            $this->hook->apply('error', [$e]);
+            $this->hook->apply('error', [$e, $this]);
             $this->container->call($handler, [$e]);
             $this->response->send();
 
@@ -294,15 +295,12 @@ class App implements ArrayAccess {
     /**
      * Handle specified exception
      */
-    public function exception(Closure $fn)
+    public function handle($exception_class, Closure $fn)
     {
-        $dependencies = Container::getCallableDependencies($fn);
-        $exception_class = $dependencies[0];
-
         if(is_subclass_of($exception_class, 'Exception') OR $exception_class == 'Exception') {
             $this->exception_handlers[$exception_class] = $fn;
         } else {
-            throw new InvalidArgumentException("Parameter 1 of exception handler must be instanceof Exception or Exception itself", 1);
+            throw new InvalidArgumentException("{$exception_class} is not subclass of Exception", 1);
         }
     }
 
