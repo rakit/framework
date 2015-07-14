@@ -271,11 +271,11 @@ class App implements ArrayAccess {
 
             return $this;
         } catch (Exception $e) {
-            return $this->handleException($e);
+            return $this->exception($e);
         }
     }
 
-    public function handleException(Exception $e)
+    public function exception(Exception $e)
     {
         $status_code = $e->getCode();
         $status_message = $this->response->getStatusMessage($status_code);
@@ -496,7 +496,7 @@ class App implements ArrayAccess {
             }
 
             $exception = new ErrorException($message, 500, $severity, $file, $line);
-            $app->handleException($exception);
+            $app->exception($exception);
             $app->stop();
         });
 
@@ -513,7 +513,7 @@ class App implements ArrayAccess {
 
                 $exception = new FatalErrorException($message, 500, 1, $errfile, $errline);
 
-                $app->handleException($exception);
+                $app->exception($exception);
                 $app->stop();
             }
         });
