@@ -65,6 +65,7 @@ class App implements ArrayAccess {
             static::setDefaultInstance($name);
         }
 
+        $this->registerErrorHandlers();
         $this->registerBaseHooks();
         $this->registerDefaultMacros();
         $this->registerBaseProviders();
@@ -230,34 +231,7 @@ class App implements ArrayAccess {
         // reset providers, we don't need them anymore
         $this->providers = [];
 
-        // set error handler
-        set_error_handler(function($severity, $message, $file, $line) use ($app) {
-            if (!(error_reporting() & $severity)) {
-                return;
-            }
-
-            $exception = new ErrorException($message, 500, $severity, $file, $line);
-            $app->handleException($exception);
-            $app->stop();
-        });
-
-        // set fatal error handler
-        register_shutdown_function(function() use ($app) {
-            $error = error_get_last();
-            if($error) {
-                $errno   = $error["type"];
-                $errfile = $error["file"];
-                $errline = $error["line"];
-                $errstr  = $error["message"];
-
-                $message = "[$errno] $errstr on $errfile line $errline";
-
-                $exception = new FatalErrorException($message, 500, 1, $errfile, $errline);
-
-                $app->handleException($exception);
-                $app->stop();
-            }
-        });
+        
 
         return $this->booted = true;
     }
@@ -279,7 +253,7 @@ class App implements ArrayAccess {
             $matched_route = $this->router->findMatch($path, $method);
 
             if(!$matched_route) {
-                throw new HttpNotFoundException();
+                return $this->notFound();
             }
 
             $this->request->defineRoute($matched_route);
@@ -375,7 +349,9 @@ class App implements ArrayAccess {
      */
     public function notFound()
     {
-        throw new HttpNotFoundException();
+        $method = $this->request->server['REQUEST_METHOD'];
+        $path = $this->request->path();
+        throw new HttpNotFoundException("Error 404! Route '{$method} {$path}' is not registered");
     }
 
     /**
@@ -388,7 +364,7 @@ class App implements ArrayAccess {
     public function abort($status, $message = null)
     {
         if($status == 404) {
-            throw new HttpNotFoundException;
+            return $this->notFound();
         } else {
             throw new HttpErrorException;
         }
@@ -504,6 +480,43 @@ class App implements ArrayAccess {
         foreach($base_providers as $provider_class) {
             $this->provide($provider_class);
         }
+    }
+
+    /**
+     * Register error handler
+     */
+    public function registerErrorHandlers()
+    {
+        $app = $this;
+
+        // set error handler
+        set_error_handler(function($severity, $message, $file, $line) use ($app) {
+            if (!(error_reporting() & $severity)) {
+                return;
+            }
+
+            $exception = new ErrorException($message, 500, $severity, $file, $line);
+            $app->handleException($exception);
+            $app->stop();
+        });
+
+        // set fatal error handler
+        register_shutdown_function(function() use ($app) {
+            $error = error_get_last();
+            if($error) {
+                $errno   = $error["type"];
+                $errfile = $error["file"];
+                $errline = $error["line"];
+                $errstr  = $error["message"];
+
+                $message = "[$errno] $errstr in $errfile line $errline";
+
+                $exception = new FatalErrorException($message, 500, 1, $errfile, $errline);
+
+                $app->handleException($exception);
+                $app->stop();
+            }
+        });
     }
 
     /**

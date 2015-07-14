@@ -6,10 +6,17 @@ class Debugger {
     {
         $trace = $e->getTrace();
         $main_cause = array_shift($trace);
+        $index = count($e->getTrace());
 
-        $dom_main_cause = $this->renderMainCause($e, $main_cause);
+        if($e instanceof \ErrorException AND count($trace) > 0) {
+            $main_cause = array_shift($trace);
+            $index -= 1;
+        }
+
+        $dom_main_cause = $this->renderMainCause($index, $e, $main_cause);
         $dom_traces = $this->renderTraces($trace);
         $message = $e->getMessage();
+        $class = get_class($e);
 
         $result = "
             <html>
@@ -22,8 +29,15 @@ class Debugger {
                         .w > h3 {
                             font-size: 18px;
                             color: #666;
-                            margin: 10px 0px;
+                            margin: 0px 0px 10px;
                         }
+
+                        .w > h4 {
+                            font-size: 14px;
+                            color: #aaa;
+                            margin: 10px 0px 0px;
+                        }
+
                         .w > h3:before,
                         .w > h3:after {
                             content: '\"';
@@ -67,6 +81,10 @@ class Debugger {
                             border-bottom: 1px dashed #efefef;
                         }
 
+                        .w ul li:last-child {
+                            border: none;
+                        }
+
                         .w ul li h4 {
                             font-size: 1.3em;
                             margin: 0px;
@@ -77,10 +95,12 @@ class Debugger {
                             opacity: .5;
                         }
 
+                        .w ul li h4 span {
+                            opacity: .5;
+                        }
+
                         .w ul li.m {
                             font-size: 1em;
-                            background: #3FB671;
-                            color: white;
                         }
 
                         .w ul li:not(.m):hover {
@@ -102,6 +122,7 @@ class Debugger {
                 </head>
                 <body>
                     <div class='w'>
+                        <h4>{$class}</h4>
                         <h3>{$message}</h3>
                         <ul>{$dom_main_cause}{$dom_traces}</ul>
                     </div>
@@ -112,14 +133,13 @@ class Debugger {
         return $result;
     }
 
-    protected function renderMainCause(\Exception $e, array $trace)
+    protected function renderMainCause($index, \Exception $e, array $trace)
     {
         $message = $this->getMessage($trace);
         $file = $this->getPossibilityFile($trace, $e);
         $line = $this->getPossibilityLine($trace, $e);
-        $count_traces = count($e->getTrace());
 
-        return "<li class='m' id='{$count_traces}'>".$this->renderTrace($count_traces, $message, $file, $line)."</li>";
+        return "<li class='m' id='{$index}'>".$this->renderTrace($index, $message, $file, $line)."</li>";
     }
 
     protected function renderTraces(array $traces)
@@ -152,7 +172,7 @@ class Debugger {
         if(isset($trace_data['class'])) {
             $message = $trace_data['class'];
             if(isset($trace_data['function'])) {
-                $message .= '->'.$trace_data['function'].'()';
+                $message .= '<span>'.$trace_data['type'].'</span>'.$trace_data['function'].'()';
             }
         } elseif($trace_data['function']) {
             $message = $trace_data['function'].'()';
