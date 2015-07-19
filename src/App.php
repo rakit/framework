@@ -351,7 +351,14 @@ class App implements ArrayAccess {
     {
         $method = $this->request->server['REQUEST_METHOD'];
         $path = $this->request->path();
-        throw new HttpNotFoundException("Error 404! Route '{$method} {$path}' is not registered");
+
+        if($this->request->route()) {
+            $message = "Error 404! Looks like you are throwing this manually";
+        } else {
+            $message = "Error 404! No route matched with '{$method} {$path}'";
+        }
+
+        throw new HttpNotFoundException($message);
     }
 
     /**
