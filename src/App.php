@@ -2,9 +2,11 @@
 
 use ArrayAccess;
 use Closure;
-use Exception;
 use ErrorException;
+use Exception;
 use InvalidArgumentException;
+use Rakit\Framework\Dumper\CliDumper;
+use Rakit\Framework\Dumper\HtmlDumper;
 use Rakit\Framework\Exceptions\FatalErrorException;
 use Rakit\Framework\Exceptions\HttpErrorException;
 use Rakit\Framework\Exceptions\HttpNotFoundException;
@@ -329,7 +331,7 @@ class App implements ArrayAccess {
 
     protected function debugException(Exception $e)
     {
-        $debugger = new Debugger;
+        $debugger = PHP_SAPI == 'cli'? new CliDumper : new HtmlDumper;
         $this->response->html($debugger->render($e));
     }
 
@@ -601,7 +603,7 @@ class App implements ArrayAccess {
         });
 
         $this->macro('redirect', function($defined_url) {
-            if(preg_match('http(s)?\:\/\/', $defined_url)) {
+            if(preg_match('/http(s)?\:\/\//', $defined_url)) {
                 $url = $defined_url;
             } elseif($this->router->findRouteByName($defined_url)) {
                 $url = $this->routeUrl($defined_url);
