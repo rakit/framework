@@ -491,6 +491,89 @@ $app->run();
 > Object yang dapet diinject kedalam constructor atau callable adalah Object yang terdaftar dalam container aplikasi.
 (baca: mendaftarkan object ke dalam container)
 
+### Easy File Upload
+
+Rakit framework dibuat dengan sintax yang mudah dipahami. Jika pada PHP Native, kamu melakukan upload file dengan kode yang kira-kira seperti ini:
+
+```php
+<?php
+
+// cek ada upload photo atau tidak
+if(isset($_FILES['photo']) AND is_uploaded_file($_FILES['photo']['tmp_name'])) {
+
+    $tmp = $_FILES['photo']['tmp_name'];
+    $filename = $_FILES['photo']['name'];
+    $extension = pathinfo($filename, PATHINFO_EXTENSION);
+    // set nama baru dengan ekstensi sesuai dengan file yg terupload
+    $newname = 'newname.'.$extension;
+    $upload_dir = 'my/upload/dir';
+    $destination = $upload_dir.'/'.$newname;
+
+    if( ! is_writeable($upload_dir) OR ! move_uploaded_file($tmp, $destination)) {
+        // file tidak ter-upload
+    }
+}
+```
+
+Dengan rakit framework akan menjadi seperti ini:
+
+```php
+// action coba-coba upload photo
+public function tryUploadPhoto(Request $req) 
+{
+    $photo = $req->file('photo');
+    // cek ada upload photo atau tidak
+    if($photo) {
+        // set nama baru dengan ekstensi sesuai dengan file yg terupload
+        $photo->name = 'newname';
+
+        try {
+            $photo->move('my/upload/dir');
+        } catch (\Exception $e) {
+            // terjadi kesalahan, file tidak ter-upload
+        }
+    }
+
+}
+```
+
+#### Upload Multiple File
+
+Dengan PHP Native, upload multiple file akan seperti ini:
+
+```php
+// cek ada upload multiple image atau tidak
+if(isset($_FILES['image']) AND is_array($_FILES['image']['tmp_name'])) {
+
+    $upload_dir = 'my/upload/dir';
+    
+    foreach($_FILES['image']['tmp_name'] as $i => $tmp_file) {
+        $filename = $_FILES['image']['name'][$i];
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+        $newname = 'image-'.($i+1).'.'.$extension;
+        $destination = $upload_dir.'/'.$newname;
+
+        move_uploaded_file($tmp_file, $destination);
+    }
+
+}
+```
+
+Dengan rakit framework akan jadi semudah ini:
+
+```php
+public function tryMultipleFileUpload(Request $req)
+{
+    $images = $req->files('image');
+    foreach($images as $i => $image) {
+        $image->name = 'image-'.($i+1);
+        $image->move('my/upload/dir');
+    }
+}
+```
+
+> Contoh-contoh upload diatas hanya untuk memperlihatkan bagaimana perbandingan metode upload file native dengan rakit framework. Dalam implementasinya, kamu harus
+menambahkan beberapa baris code untuk memvalidasi file yang akan di upload tersebut.
 
 ## Coming soon
 
