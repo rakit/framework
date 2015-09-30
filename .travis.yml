@@ -6,7 +6,8 @@ php:
   - 7.0
   - hhvm
 
-install:
-  - composer install
+before_script:
+  - composer self-update
+  - composer install --dev
 
 script: phpunit --coverage-text
