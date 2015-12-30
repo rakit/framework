@@ -2,6 +2,8 @@ Rakit Framework
 =================
 
 [![Build Status](https://travis-ci.org/emsifa/rakit-framework.svg)](https://travis-ci.org/emsifa/rakit-framework)
+[![License](http://img.shields.io/:license-mit-blue.svg)](http://doge.mit-license.org)
+
 
 Rakit Framework adalah _micro PHP framework_ yang dikembangkan untuk menangani website skala kecil - enterprise. 
 Framework ini terinspirasi penuh oleh Laravel/Lumen framework, hanya saja dengan size yang terbilang cukup ringan (dibawah 500KB).
