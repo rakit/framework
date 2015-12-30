@@ -16,6 +16,6 @@
     "minimum-stability": "dev",
     "require": {},
     "require-dev": {
-        "phpunit/phpunit": "5.*"
+        "phpunit/phpunit": "4.*"
     }
 }
