@@ -1,6 +1,6 @@
 {
     "name": "rakit/framework",
-    "description": "Micro framework laravel|lumen taste",
+    "description": "Another PHP micro framework inspired by Slim 2, laravel and lumen",
     "license": "MIT",
     "authors": [
         {
