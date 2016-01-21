@@ -203,7 +203,7 @@ class App implements ArrayAccess {
      */
     public function route($methods, $path, $action)
     {
-        return $this->router->register($methods, $path, $action);
+        return $this->router->add($methods, $path, $action);
     }
 
     /**

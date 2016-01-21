@@ -19,10 +19,10 @@ class Route {
     protected $name;
 
     /**
-     * Route allowed methods
-     * @var array
+     * Route allowed method
+     * @var string
      */
-    protected $allowed_methods = array();
+    protected $allowed_method = '';
 
     /**
      * Route parameter regexes
@@ -42,9 +42,9 @@ class Route {
      * @param   string
      * @return  void
      */
-    public function __construct($allowed_methods, $path, $action, array $middlewares = array(), array $conditions = array())
+    public function __construct($allowed_method, $path, $action, array $middlewares = array(), array $conditions = array())
     {
-        $this->allowed_methods = (array) $allowed_methods;
+        $this->allowed_method = $allowed_method;
         $this->path = $this->resolvePath($path);
         $this->action = $action;
         $this->middlewares = $middlewares;
@@ -76,9 +76,9 @@ class Route {
      *
      * @return  array
      */
-    public function getAllowedMethods()
+    public function getMethod()
     {
-        return $this->allowed_methods;
+        return $this->allowed_method;
     }
 
     /**
@@ -120,25 +120,6 @@ class Route {
     public function name($name)
     {
         $this->name = $name;
-
-        return $this;
-    }
-
-    /**
-     * Set allowed methods
-     *
-     * @param   string
-     * @return  self
-     */
-    public function allowMethod($method)
-    {
-        $methods = (array) $method;
-
-        foreach($methods as $i => $method) {
-            $methods[$i] = $this->resolveMethodName($method);
-        }
-
-        $this->allowed_methods = array_merge($this->allowed_methods, $methods);
 
         return $this;
     }
@@ -225,8 +206,7 @@ class Route {
      */
     public function isAllowing($method)
     {
-        $method = $this->resolveMethodName($method);
-        return in_array($method, $this->getAllowedMethods());
+        return $this->resolveMethodName($method) == $this->getMethod();
     }
 
     /**

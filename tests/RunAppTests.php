@@ -11,7 +11,11 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
     protected $app;
 
     public function setUp() {
-        $this->app = new App('test');
+        $this->app = new App('test', [
+            'app' => [
+                'debug' => false
+            ]
+        ]);
 
         // handle 404
         $this->app->on(404, function($response) {
@@ -137,8 +141,8 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $name."-".$age;
         });
 
-        $this->assertResponse("GET", "/hello/foo/12", 'foo-12');
         $this->assertResponse("GET", "/hello/bar", 'bar-1');
+        $this->assertResponse("GET", "/hello/foo/12", 'foo-12');
     }
 
     /**
@@ -307,6 +311,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
         })->where('username', '[a-zA-Z_]+');
 
         $this->assertResponse("GET", "/u/foobar/profile", 'foobar profile');
+        $this->assertResponse("GET", "/u/foobar/123", 'Not Found!', 404);
     }
 
     /**

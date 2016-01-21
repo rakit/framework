@@ -9,10 +9,10 @@ class Router {
     use MacroableTrait;
 
     /**
-     * List registered routes
+     * Kumpulan route yang di daftarkan
      * @var array
      */
-    protected $routes = array();
+    protected $routes = [];
 
     /**
      * List registered groups
@@ -21,52 +21,29 @@ class Router {
     protected $groups = array();
 
     /**
+     * Max parameter pada sebuah route
+     * digunakan juga untuk acuan dummy group pada method toRegex()
+     * @var int
+     */
+    protected $max_params = 5;
+    
+    /**
+     * Banyak route maksimum di dalam sebuah regex
+     * @var int
+     */
+    protected $max_routes_in_regex = 16;
+
+    /**
      * Default route parameter regex
      * @var string
      */
-    protected $default_param_regex = '[a-zA-Z0-9_.-]+';
+    protected $default_param_regex = '[^/]+';
 
     /**
      * Case sensitive route
      * @var boolean
      */
     protected $case_sensitive = true;
-
-    public function __construct(App $app)
-    {
-        $this->app = $app;
-    }
-
-    /**
-     * Get application
-     *
-     * @return Rakit\Framework\App
-     */
-    public function getApp()
-    {
-        return $this->app;
-    }
-
-    /**
-     * Set default parameter regex
-     *
-     * @param   string $regex
-     */
-    public function setDefaultParamRegex($regex)
-    {
-        $this->default_param_regex = $regex;
-    }
-
-    /**
-     * Toggle enable/disable case sensitive
-     *
-     * @param   bool $bool
-     * @return  void
-     */
-    public function caseSentitive($bool)
-    {
-        $this->case_sensitive = $bool;
-    }
 
     /**
      * Get registered routes
@@ -76,8 +53,7 @@ class Router {
     public function getRoutes()
     {
         $routes = $this->routes;
-        $groups = $this->groups;
-        foreach($groups as $group) {
+        foreach($this->groups as $group) {
             $routes = array_merge($routes, $group->getRoutes());
         }
 
@@ -85,112 +61,78 @@ class Router {
     }
 
     /**
-     * Find routes by given path
+     * Register a Route
      *
-     * @param   string $path_search
-     * @return  array
-     */
-    public function findRoutes($path_search)
-    {
-        $routes = array();
-        $path_search = preg_replace("/[^a-zA-Z0-9]/", '\\\$0', $path_search);
-
-        $routes = $this->getRoutes();
-
-        foreach($routes as $route) {
-            if (preg_match("/^".$path_search."/", $route->getPath())) {
-                $routes[] = $route;
-            }
-        }
-
-        return $routes;
-    }
-
-    /**
-     * Find a route by name
-     *
-     * @param   string $name
-     * @return  null|Route
-     */
-    public function findRouteByName($name)
-    {
-        $routes = $this->getRoutes();
-
-        foreach($routes as $route) {
-            if ($route->getName() == $name) return $route;
-        }
-
-        return null;
-    }
-
-    /**
-     * Register a route
-     *
-     * @param   string|array $methods
+     * @param   string $method
      * @param   string $path
      * @return  Route
      */
-    public function register($methods, $path, $controller)
+    public function add($method, $path, $handler)
     {
-        $route = new Route($methods, $path, $controller);
+        $route = new Route($method, $path, $handler);
         $this->routes[] = $route;
 
         return $route;
     }
 
     /**
-     * Register GET route
+     * Register GET Route
      *
      * @param   string $path
-     * @return  Route
+     * @param   Closure|string $handler
+     * @return  Route 
      */
-    public function get($path, $controller)
+    public function get($path, $handler)
     {
-        return $this->register('GET', $path, $controller);
+        return $this->add('GET', $path, $handler);
     }
 
     /**
-     * Register POST route
+     * Register POST Route
      *
      * @param   string $path
-     * @return  Route
+     * @param   Closure|string $handler
+     * @return  Route 
      */
-    public function post($path, $controller)
+    public function post($path, $handler)
     {
-        return $this->register('GET', $path, $controller);
+        return $this->add('POST', $path, $handler);
     }
 
     /**
-     * Register PUT route
+     * Register PUT Route
      *
      * @param   string $path
-     * @return  Route
+     * @param   Closure|string $handler
+     * @return  Route 
      */
-    public function put($path, $controller)
+    public function put($path, $handler)
     {
-        return $this->register('PUT', $path, $controller);
+        return $this->add('PUT', $path, $handler);
     }
 
     /**
-     * Register PATCH route
+     * Register PATCH Route
      *
      * @param   string $path
-     * @return  Route
+     * @param   Closure|string $handler
+     * @return  Route 
      */
-    public function patch($path, $controller)
+    public function patch($path, $handler)
     {
-        return $this->register('PATCH', $path, $controller);
+        return $this->add('PATCH', $path, $handler);
     }
 
     /**
-     * Register DELETE route
+     * Register DELETE Route
      *
      * @param   string $path
-     * @return  Route
+     * @param   Closure|string $handler
+     * @return  Route 
      */
-    public function delete($path, $controller)
+    public function delete($path, $handler)
     {
-        return $this->register('DELETE', $path, $controller);
+        return $this->add('DELETE', $path, $handler);
     }
 
     /**
@@ -198,7 +140,7 @@ class Router {
      *
      * @param   string $path
      * @param   Closure $grouper
-     * @return  RouteMap
+     * @return  RouteGroup
      */
     public function group($path, Closure $grouper)
     {
@@ -208,38 +150,100 @@ class Router {
     }
 
     /**
+     * Grouping some routes in different methods
+     *
+     * @param   string $path
+     * @param   Closure|string $handler
+     * @return  RouteGroup
+     */
+    public function map(array $methods, $path, $handler)
+    {
+        $group = new RouteGroup($path, function($group) use ($methods, $handler) {
+            foreach($methods as $method) {
+                $group->add($method, '/', $handler);
+            }
+        });
+
+        $this->groups[] = $group;
+        return $group;
+    }
+
+    /**
+     * Register GET, POST, PUT, PATCH & DELETE routes with same path & handler
+     *
+     * @param   string $path
+     * @param   Closure|string $handler
+     * @return  RouteGroup 
+     */
+    public function any($path, $handler)
+    {
+        return $this->map(['GET','POST','PUT','PATCH','DELETE'], $path, $handler);
+    }
+
+    /**
      * Find route by given path and method
      *
      * @param   string $path
      * @param   string $method
      * @return  null|Route
      */
-    public function findMatch($path, $method = null)
+    public function dispatch($method, $path)
     {
-        $path = $this->resolvePath($path);
+        $pattern = $this->makePattern($method, $path);
+        $all_routes = $this->getRoutes();
 
-        $routes = $this->getRoutes();
+        $chunk_routes = array_chunk($all_routes, $this->max_routes_in_regex);
 
-        foreach($routes as $route) {
-            $regex = $this->routePathToRegex($route);
-            $method_allowed = is_string($method)? in_array($method, $route->getAllowedMethods()) : true;
-
-
-            if (@preg_match($regex, $path, $match) AND $method_allowed) {
-                $route_params = $this->getDeclaredPathParams($route);
-                $route->params = array();
-
-                foreach($route_params as $param) {
-                    if (isset($match[$param])) {
-                        $route->params[$param] = $match[$param];
-                    }
-                }
-
-                return $route;
+        foreach($chunk_routes as $i => $routes) {
+            $regex = [];
+            foreach($routes as $i => $route) {
+                $regex[] = $this->toRegex($route, $i);
             }
+            $regex = "~^(?|".implode("|", $regex).")$~x";
+
+            if(!preg_match($regex, $pattern, $matches)) {
+                continue;
+            }
+
+            $index = (count($matches) - 1 - $this->max_params);
+
+            $matched_route = $routes[$index];
+            $matched_route->params = [];
+            $path = $route->getPath();
+
+            $params = $this->getDeclaredPathParams($matched_route);
+            foreach($params as $i => $param) {
+                // find param index in $matches
+                // the problem is if using optional parameter like:
+                // /foo/:bar(/:baz)
+                // the regex should look like this:
+                // /foo/(<bar>)(/(<baz>))?
+                // so the index of :baz is not $i, 
+                // so the trick is to add $i with count char '(' before that :param in route path
+                // for example if route path like this:
+                // /foo/:bar(/:baz(/:qux)), the regex: /foo/(<bar>)(/(<baz>)(/(<qux>))?)?
+                // so index for :qux is 3+2, where 2 is count '(' before :qux
+                $pos = strpos($path, ':'.$param);
+                $count_open_bracket = substr_count($path, '(', 0, $pos);
+                $value = $matches[$i+1+$count_open_bracket];
+
+                if($value) {
+                    $matched_route->params[$param] = $value;
+                }
+            }
+            
+            return $matched_route;
         }
 
         return null;
+    }
+
+    /**
+     * Alias for dispatch
+     */
+    public function findMatch($path, $method)
+    {
+        return $this->dispatch($method, $path);
     }
 
     /**
@@ -248,32 +252,32 @@ class Router {
      * @param   Route $route
      * @return  string regex
      */
-    protected function routePathToRegex(Route $route)
+    protected function toRegex(Route $route, $index)
     {
-        $path = $this->resolvePath($route->getPath());
+        $method = $route->getMethod();
+        $path = $route->getPath();
         $conditions = $route->getConditions();
         $params = $this->getDeclaredPathParams($route);
 
-        $regex = $path;
-        // transform /foo(/:bar(/:baz)) into foo(/:bar(/:baz)?)?
-        $regex = preg_replace('/\)/i', '$0?', $regex);
+        $regex = $this->makePattern($method, $path);
 
-        // transform /foo/:bar/:baz into /foo/(?<bar>)/(?<baz>)
-        $regex = preg_replace('/:([a-zA-Z_][a-zA-Z0-9_]+)/', "(?<$1>)", $regex);
+        // transform /foo/:bar(/:baz) => /foo/:bar(/:baz)?
+        $regex = str_replace(')', ')?', $regex);
 
-        // transform /foo/bar into \/foo\/bar
-        $regex = str_replace('/', '\/', $regex);
-
-        // transform /foo/(?<baz>)/(?<baz>) into /foo/(?<bar>{$condition})/(?<baz>{$condition})
         foreach($params as $param) {
             if (array_key_exists($param, $conditions)) {
-                $regex = str_replace('(?<'.$param.'>)', '(?<'.$param.'>'.$conditions[$param].')', $regex);
+                $regex = str_replace(':'.$param, '('.$conditions[$param].')', $regex);
             } else {
-                $regex = str_replace('(?<'.$param.'>)', '(?<'.$param.'>'.$this->default_param_regex.')', $regex);
+                $regex = str_replace(':'.$param, '('.$this->default_param_regex.')', $regex);
             }
         }
 
-        return $this->case_sensitive? '/^'.$regex.'$/i' : '/^'.$regex.'$/';
+        $count_brackets = substr_count($regex, "(");
+        $count_added_brackets = $this->max_params + ($index - $count_brackets);
+
+        $regex .= str_repeat("()", $count_added_brackets);
+
+        return $regex;
     }
 
     /**
@@ -285,19 +289,13 @@ class Router {
     protected function getDeclaredPathParams(Route $route)
     {
         $path = $route->getPath();
-        preg_match_all('/\:([a-zA-Z_][a-zA-Z0-9_]+)/', $path, $match);
+        preg_match_all('/\:([a-z_][a-z0-9_]+)/i', $path, $match);
         return $match[1];
     }
 
-    /**
-     * Resolving a path
-     *
-     * @param   string $path
-     * @return  string
-     */
-    protected function resolvePath($path)
+    public function makePattern($method, $path)
     {
-        return '/'.trim($path, '/');
+        return $method.$path;
     }
 
 }

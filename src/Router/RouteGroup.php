@@ -1,8 +1,11 @@
 <?php namespace Rakit\Framework\Router;
 
 use Closure;
+use Rakit\Framework\MacroableTrait;
 
 class RouteGroup {
+    
+    use MacroableTrait;
 
     protected $path;
 
@@ -55,18 +58,35 @@ class RouteGroup {
     }
 
     /**
-     * Register a route
+     * Register routes by many methods
      *
-     * @param string    array $methods
-     * @param string    $path
-     * @return Route
+     * @param   array $methods
+     * @param   string $path
+     * @return  Route[]
      */
-    public function register($methods, $path, $controller)
+    public function map(array $methods, $path, $handler)
+    {
+        return $this->group($path, function($group) use ($methods, $handler) {
+            foreach($methods as $method) {
+                $group->add($method, '/', $handler);
+            }
+        });
+    }
+
+    /**
+     * Register a Route
+     *
+     * @param   string $method
+     * @param   string $path
+     * @return  Route
+     */
+    public function add($method, $path, $handler)
     {
         $middlewares = $this->getMiddlewares();
         $conditions = $this->getConditions();
         $path = $this->getPath().$path;
-        $route = new Route($methods, $path, $controller, $middlewares, $conditions);
+
+        $route = new Route($method, $path, $handler, $middlewares, $conditions);
         $this->routes[] = $route;
 
         return $route;
@@ -78,9 +98,9 @@ class RouteGroup {
      * @param string    $path
      * @return Route
      */
-    public function get($path, $controller)
+    public function get($path, $handler)
     {
-        return $this->register('GET', $path, $controller);
+        return $this->add('GET', $path, $handler);
     }
 
     /**
@@ -89,9 +109,9 @@ class RouteGroup {
      * @param string    $path
      * @return Route
      */
-    public function post($path, $controller)
+    public function post($path, $handler)
     {
-        return $this->register('POST', $path, $controller);
+        return $this->add('POST', $path, $handler);
     }
 
     /**
@@ -100,9 +120,9 @@ class RouteGroup {
      * @param string    $path
      * @return Route
      */
-    public function put($path, $controller)
+    public function put($path, $handler)
     {
-        return $this->register('PUT', $path, $controller);
+        return $this->add('PUT', $path, $handler);
     }
 
     /**
@@ -111,9 +131,9 @@ class RouteGroup {
      * @param string    $path
      * @return Route
      */
-    public function patch($path, $controller)
+    public function patch($path, $handler)
     {
-        return $this->register('PATCH', $path, $controller);
+        return $this->add('PATCH', $path, $handler);
     }
 
     /**
@@ -122,9 +142,9 @@ class RouteGroup {
      * @param string    $path
      * @return Route
      */
-    public function delete($path, $controller)
+    public function delete($path, $handler)
     {
-        return $this->register('DELETE', $path, $controller);
+        return $this->add('DELETE', $path, $handler);
     }
 
     /**
