@@ -107,6 +107,19 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      * @runInSeparateProcess
      * @preserveGlobalState enabled
      */
+    public function testMethodHead()
+    {
+        $this->app->get("/foo", function() {
+            return "head";
+        });
+
+        $this->assertResponse("HEAD", "/foo", 'head');
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
     public function testMethodDelete()
     {
         $this->app->delete("/foo", function() {

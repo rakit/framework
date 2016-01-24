@@ -252,7 +252,13 @@ class App implements ArrayAccess {
 
             $path = $path ?: $this->request->path();
             $method = $method ?: $this->request->server['REQUEST_METHOD'];
-            $matched_route = $this->router->findMatch($path, $method);
+
+            /**
+             * for HEAD request
+             * instead to add some code in router that will slow down performance
+             * we trick it by change it to GET for dispatching only
+             */
+            $matched_route = $this->router->findMatch($path, $method == 'HEAD'? 'GET' : $method);
 
             if(!$matched_route) {
                 return $this->notFound();
