@@ -207,7 +207,10 @@ class Response {
         $this->app->hook->apply("response.before_send", [$this, $this->app]);
 
         if(!headers_sent()) $this->writeHeaders();
-        echo $this->body;
+        
+        if('HEAD' != $this->app->request->server['REQUEST_METHOD']) {
+            echo $this->body;
+        } 
 
         $this->has_sent = true;
         $this->app->hook->apply("response.after_send", [$this, $this->app]);

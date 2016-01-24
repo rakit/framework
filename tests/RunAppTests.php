@@ -107,19 +107,6 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      * @runInSeparateProcess
      * @preserveGlobalState enabled
      */
-    public function testMethodHead()
-    {
-        $this->app->get("/foo", function() {
-            return "head";
-        });
-
-        $this->assertResponse("HEAD", "/foo", 'head');
-    }
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState enabled
-     */
     public function testMethodDelete()
     {
         $this->app->delete("/foo", function() {
@@ -127,6 +114,20 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
         });
 
         $this->assertResponse("DELETE", "/foo", 'delete');
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
+    public function testMethodHead()
+    {
+        $this->app->get("/foo", function() {
+            return "head";
+        });
+
+        // in HEAD request, we don't send response body
+        $this->assertResponse("HEAD", "/foo", '');
     }
 
     /**
@@ -413,22 +414,24 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
 
     protected function runAndGetResponse($method, $path)
     {
+        $this->app->request->server['REQUEST_METHOD'] = $method;
+
         //buffer output, so output won't appear in terminal
         ob_start();
         $this->app->run($method, $path);
-        ob_end_clean();
+        $rendered = ob_get_clean();
 
         $response = clone $this->app->response;
         $this->app->response->reset();
 
-        return $response;
+        return [$response, $rendered];
     }
 
     protected function assertResponse($method, $path, $assert_body, $assert_status = 200)
     {
-        $response = $this->runAndGetResponse($method, $path);
+        list($response, $rendered) = $this->runAndGetResponse($method, $path);
 
-        $this->assertEquals($response->body, $assert_body);  
+        $this->assertEquals($rendered, $assert_body);  
         $this->assertEquals($response->getStatus(), $assert_status);
     }
 
