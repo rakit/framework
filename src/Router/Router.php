@@ -25,7 +25,7 @@ class Router {
      * digunakan juga untuk acuan dummy group pada method toRegex()
      * @var int
      */
-    protected $max_params = 5;
+    protected $max_params = 10;
     
     /**
      * Banyak route maksimum di dalam sebuah regex
@@ -244,6 +244,21 @@ class Router {
     public function findMatch($path, $method)
     {
         return $this->dispatch($method, $path);
+    }
+
+    /**
+     * Get route by given name
+     *
+     * @param   string $route_name
+     * @return  null|Route
+     */
+    public function findRouteByName($name)
+    {
+        $routes = $this->getRoutes();
+        foreach($routes as $route) {
+            if($route->getName() == $name) return $route;
+        }
+        return null;
     }
 
     /**

@@ -4,7 +4,7 @@
             <file>tests/ContainerTests.php</file>
             <file>tests/BagTests.php</file>
             <file>tests/HookTests.php</file>
-            <file>tests/AppTests.php</file>
+            <file>tests/RouterTests.php</file>
             <file>tests/RunAppTests.php</file>
         </testsuite>
     </testsuites>
