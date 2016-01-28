@@ -82,6 +82,7 @@ class HtmlDumper extends BaseDumper implements DumperInterface
                             font-size: .7em;
                             color: #444;
                             border-bottom: 1px dashed #efefef;
+                            list-style-type: none;
                         }
 
                         .w ul li:last-child {
