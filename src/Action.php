@@ -115,6 +115,17 @@ abstract class Action {
     }
 
     /**
+     * Check if defined action using string class method like ClassName@method
+     *
+     * @return boolean
+     */
+    public function useStringClassMethod()
+    {
+        $defined_action = (string) $this->getDefinedAction();
+        return count(explode('@', $defined_action)) == 2;
+    }
+
+    /**
      * Run action
      *
      * @return Rakit\Framework\Http\Response
@@ -123,6 +134,22 @@ abstract class Action {
     {
         $app = $this->getApp();
         $callable = $this->getCallable();
+        
+        if (!is_callable($callable)) {
+            $defined_action = (string) $this->getDefinedAction();
+            $reason = $defined_action." is not callable";
+            if ($this->useStringClassMethod()) {
+                list($class, $method) = explode('@', $defined_action, 2);
+                if (!class_exists($class)) {
+                    $reason = "Class {$class} doesn't exists";
+                } elseif (!method_exists($class, $method)) {
+                    $reason = "Method {$class}::{$method} doesn't exists";
+                }
+            }
+
+            throw new \InvalidArgumentException("Cannot run action ".$this->getType()." '".$this->getDefinedAction()."'. ".$reason, 1);
+        }
+
         $returned = call_user_func($callable);
 
         if(is_array($returned)) {
