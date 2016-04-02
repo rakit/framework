@@ -32,7 +32,10 @@ class HtmlDumper extends BaseDumper implements DumperInterface
                         .w > h3 {
                             font-size: 18px;
                             color: #666;
-                            margin: 0px 0px 10px;
+                            margin: 10px 0px 20px;
+                            line-height: 1.5;
+                            padding: 0px 30px;
+                            text-align: left;
                         }
 
                         .w > h4 {
@@ -44,10 +47,18 @@ class HtmlDumper extends BaseDumper implements DumperInterface
                         .w > h3:before,
                         .w > h3:after {
                             content: '\"';
+                            position: absolute;
+                            top: 20px;
+                            left: 0px;
                             opacity: .5;
                             display: inline-block;
                             padding: 5px;
                             font-size: 26px;
+                        }
+
+                        .w > h3:after {
+                            left: auto;
+                            right: 0px;
                         }
 
                         .w, .w ul, .w ul li {
@@ -173,18 +184,41 @@ class HtmlDumper extends BaseDumper implements DumperInterface
 
     protected function getMessage($trace_data)
     {
+        $args_string = implode(', ', $this->getArgsDefinition($trace_data));
+
         if(isset($trace_data['class'])) {
             $message = $trace_data['class'];
             if(isset($trace_data['function'])) {
-                $message .= '<span>'.$trace_data['type'].'</span>'.$trace_data['function'].'()';
+                $message .= '<span>'.$trace_data['type'].'</span>'.$trace_data['function'].'('.$args_string.')';
             }
         } elseif($trace_data['function']) {
-            $message = $trace_data['function'].'()';
+            $message = $trace_data['function'].'('.$args_string.')';
         } else {
             $message = "";
         }
 
         return $message;
+    }
+
+    protected function getArgsDefinition(array $trace_data)
+    {
+        $args = isset($trace_data['args'])? $trace_data['args'] : [];
+        $args_definitions = [];
+        foreach ($args as $arg) {
+            if (is_object($arg)) {
+                $args_definitions[] = get_class($arg);
+            } elseif(is_array($arg)) {
+                $args_definitions[] = 'Array('.count($arg).')';
+            } elseif(is_bool($arg)) {
+                $args_definitions[] = $arg? 'true' : 'false';
+            } elseif(is_string($arg)) {
+                $args_definitions[] = '"'.$arg.'"';
+            } else {
+                $args_definitions[] = $arg;
+            }
+        }
+
+        return $args_definitions;
     }
 
 }
