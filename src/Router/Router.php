@@ -209,7 +209,7 @@ class Router {
 
             $matched_route = $routes[$index];
             $matched_route->params = [];
-            $path = $route->getPath();
+            $path = $matched_route->getPath();
 
             $params = $this->getDeclaredPathParams($matched_route);
             foreach($params as $i => $param) {
