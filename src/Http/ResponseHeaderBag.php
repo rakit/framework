@@ -6,7 +6,7 @@ class ResponseHeaderBag extends Bag {
 
     public function resolveKey($key)
     {
-        return strtoupper(str_replace('-', ' '));
+        return strtoupper(str_replace('-', ' ', $key));
     }    
 
     public function unresolveKey($key)
