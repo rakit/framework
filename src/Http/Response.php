@@ -127,7 +127,7 @@ class Response {
      */
     public function setContentType($type)
     {
-        $this->header["CONTENT_TYPE"] = $type;
+        $this->headers["CONTENT_TYPE"] = $type;
         return $this;
     }
 
@@ -138,22 +138,22 @@ class Response {
      */
     public function getContentType()
     {
-        return $this->header["CONTENT_TYPE"];
+        return $this->headers["CONTENT_TYPE"];
     }
 
-    public function json(array $data, $status = null)
+    public function json(array $data, $status = null, $content_type = null)
     {
         $json = json_encode($data);
-        $this->setContentType(static::CONTENT_TYPE_JSON);
+        $this->setContentType($content_type ? $content_type : static::CONTENT_TYPE_JSON);
         $this->setStatus($status);
         $this->body = $json;
 
         return $this;
     }
 
-    public function html($content, $status = null)
+    public function html($content, $status = null, $content_type = null)
     {
-        $this->setContentType(static::CONTENT_TYPE_HTML);
+        $this->setContentType($content_type ? $content_type : static::CONTENT_TYPE_HTML);
         $this->setStatus($status);
         $this->body = $content;
 
@@ -175,7 +175,6 @@ class Response {
         $this->has_sent = false;
 
         return $this
-            ->setContentType(static::CONTENT_TYPE_HTML)
             ->setStatus(200)
             ->clean();
     }
@@ -228,14 +227,11 @@ class Response {
     protected function writeHeaders()
     {
         $headers = $this->headers->all(false);
-        $content_type = $this->getContentType();
+        $content_type = ($type = $this->getContentType()) ? $type : static::CONTENT_TYPE_HTML;
 
         // http://stackoverflow.com/questions/6163970/set-response-status-code
         header("HTTP/1.1 ".$this->getStatusMessage($this->status), true, $this->status);
-        if ($content_type) {
-            header('Content-type: '.$content_type);
-        }
-
+        header('Content-type: '.$content_type);
         foreach($headers as $key => $value) {
             $header = $this->normalizeHeaderKey($key).': '.$value;
             header($header);

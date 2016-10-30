@@ -153,9 +153,9 @@ abstract class Action {
         $returned = call_user_func($callable);
 
         if(is_array($returned)) {
-            $app->response->json($returned);
+            $app->response->json($returned, null, $app->response->getContentType());
         } elseif(is_string($returned)) {
-            $app->response->html($returned);
+            $app->response->html($returned, null, $app->response->getContentType());
         }
 
         return $app->response->body;

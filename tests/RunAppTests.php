@@ -273,7 +273,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
             return $request->str."bazQux";
         })->setStr('foobar')->jsonify()->uppercase();
 
-        $this->assertResponse("GET", "/foo", '{"body":"FOOBARBAZQUX"}');
+        $this->assertResponse("GET", "/foo", '{"body":"FOOBARBAZQUX"}', 200, 'application/json');
     }
 
     /**
@@ -308,6 +308,41 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
         });
 
         $this->assertResponse("GET", "/group/hello", 'IM IN GROUP');
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
+    public function testResponseJson()
+    {
+        $this->app->get('/anything.json', function() {
+            return [
+                'message' => 'hello'
+            ];
+        });
+
+        $this->assertResponse("GET", "/anything.json", '{"message":"hello"}', 200, 'application/json');
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
+    public function testMiddlewareKeepResponseToJson()
+    {
+        $this->app->middleware('uppercase', function($req, $res, $next) {
+            $next();
+            return strtoupper($res->body);
+        });
+
+        $this->app->get('/anything.json', function() {
+            return [
+                'message' => 'hello'
+            ];
+        })->uppercase();
+
+        $this->assertResponse("GET", "/anything.json", '{"MESSAGE":"HELLO"}', 200, 'application/json');
     }
 
     /**
@@ -427,12 +462,14 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
         return [$response, $rendered];
     }
 
-    protected function assertResponse($method, $path, $assert_body, $assert_status = 200)
+    protected function assertResponse($method, $path, $assert_body, $assert_status = 200, $assert_content_type = 'text/html')
     {
+        $at = $method.' '.$path.' => '.$assert_body;
         list($response, $rendered) = $this->runAndGetResponse($method, $path);
 
-        $this->assertEquals($rendered, $assert_body);  
-        $this->assertEquals($response->getStatus(), $assert_status);
+        $this->assertEquals($rendered, $assert_body, $at);
+        $this->assertEquals($response->getStatus(), $assert_status, $at);
+        $this->assertEquals($response->getContentType(), $assert_content_type, $at);
     }
 
 }
