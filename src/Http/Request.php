@@ -36,7 +36,12 @@ class Request {
         if(!$path_info) {
             $request_uri = $this->server->get('REQUEST_URI');
             $script_name = $this->server->get('SCRIPT_NAME');
-            $path_info = str_replace($script_name, '', $request_uri);
+            if (pathinfo($script_name, PATHINFO_EXTENSION) == 'php') {
+                $path_info = str_replace($script_name, '', $request_uri);
+            }  else {
+                $path_info = $request_uri;
+            }
+            
             $path_info = explode('?', $path_info, 2)[0];
         }
 
