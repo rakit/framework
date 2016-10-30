@@ -228,9 +228,13 @@ class Response {
     protected function writeHeaders()
     {
         $headers = $this->headers->all(false);
+        $content_type = $this->getContentType();
 
         // http://stackoverflow.com/questions/6163970/set-response-status-code
         header("HTTP/1.1 ".$this->getStatusMessage($this->status), true, $this->status);
+        if ($content_type) {
+            header('Content-type: '.$content_type);
+        }
 
         foreach($headers as $key => $value) {
             $header = $this->normalizeHeaderKey($key).': '.$value;
