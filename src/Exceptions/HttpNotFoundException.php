@@ -1,4 +1,6 @@
-<?php namespace Rakit\Framework\Exceptions;
+<?php 
+
+namespace Rakit\Framework\Exceptions;
 
 class HttpNotFoundException extends HttpErrorException {
 

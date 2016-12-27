@@ -1,4 +1,6 @@
-<?php namespace Rakit\Framework\Util;
+<?php 
+
+namespace Rakit\Framework\Util;
 
 /**
  * Array utilities

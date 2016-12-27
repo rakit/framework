@@ -1,4 +1,6 @@
-<?php namespace Rakit\Framework\Router;
+<?php 
+
+namespace Rakit\Framework\Router;
 
 use Rakit\Framework\MacroableTrait;
 

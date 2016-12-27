@@ -1,4 +1,6 @@
-<?php namespace Rakit\Framework\Http;
+<?php 
+
+namespace Rakit\Framework\Http;
 
 use Rakit\Framework\App;
 use Rakit\Framework\Bag;

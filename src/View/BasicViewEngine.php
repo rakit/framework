@@ -1,4 +1,6 @@
-<?php namespace Rakit\Framework\View;
+<?php 
+
+namespace Rakit\Framework\View;
 
 use RuntimeException;
 

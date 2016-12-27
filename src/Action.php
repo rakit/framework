@@ -1,4 +1,6 @@
-<?php namespace Rakit\Framework;
+<?php 
+
+namespace Rakit\Framework;
 
 abstract class Action {
 
