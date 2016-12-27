@@ -82,6 +82,12 @@ class ContainerTests extends PHPUnit_Framework_TestCase {
         $this->assertTrue($this->container['foo'] === $this->container['dependFoo']->foo);
     }
 
+    public function testConstructorInjectionAlsoInjectUnregisteredClass()
+    {
+        $dependFoo = $this->container->make('DependFoo');
+        $this->assertTrue($dependFoo->foo instanceof Foo);
+    }
+
     public function testMethodInjection()
     {
         $this->container['foo:Foo'] = $this->container->singleton(function() {
@@ -92,6 +98,11 @@ class ContainerTests extends PHPUnit_Framework_TestCase {
             $this->container['foo']->foo, 
             $this->container->call(['HasMethodDependFoo', 'getFoo'])
         );
+    }
+
+    public function testMethodInjectionAlsoInjectUnregisteredClass()
+    {
+        $this->assertEquals($this->container->call(['HasMethodDependFoo', 'getFoo']), "foobar");
     }
 
 }

@@ -201,7 +201,12 @@ class Container implements ArrayAccess {
 
             if($param_class) {
                 $classname = $param_class->getName();
-                $resolved_args[] = $this->get($classname) ?: array_shift($additional_args);
+                $arg = isset($additional_args[0])? $additional_args[0] : null;
+                if (is_object($arg) AND get_class($arg) == $classname) {
+                    $resolved_args[] = $arg;
+                } else {
+                    $resolved_args[] = $this->get($classname) ?: $this->make($classname);
+                }
             } elseif(!empty($additional_args)) {
                 $resolved_args[] = array_shift($additional_args);
             }
