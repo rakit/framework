@@ -113,6 +113,22 @@ class Container implements ArrayAccess {
     }
 
     /**
+     * Get or make value in container
+     *
+     * @param   string $key
+     * @param   array $args
+     * @return  mixed
+     */
+    public function getOrMake($key, array $args = array())
+    {
+        if(!$this->has($key)) {
+            return $this->make($key, $args);
+        } else {
+            return $this->get($key);
+        }
+    }
+
+    /**
      * Remove a key in container
      *
      * @param   string $key
@@ -209,7 +225,7 @@ class Container implements ArrayAccess {
                 if (is_object($arg) AND get_class($arg) == $classname) {
                     $resolved_args[] = $arg;
                 } else {
-                    $resolved_args[] = $this->get($classname) ?: $this->make($classname);
+                    $resolved_args[] = $this->getOrMake($classname);
                 }
             } elseif(!empty($additional_args)) {
                 $resolved_args[] = array_shift($additional_args);
