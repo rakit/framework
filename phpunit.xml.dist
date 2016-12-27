@@ -1,11 +1,12 @@
 <phpunit bootstrap="vendor/autoload.php">
     <testsuites>
         <testsuite name="Rakit Framework">
-            <file>tests/ContainerTests.php</file>
-            <file>tests/BagTests.php</file>
-            <file>tests/HookTests.php</file>
-            <file>tests/RouterTests.php</file>
-            <file>tests/RunAppTests.php</file>
+            <directory suffix="Tests.php">./tests</directory>
         </testsuite>
     </testsuites>
+    <filter>
+        <whitelist>
+            <directory>./src</directory>
+        </whitelist>
+    </filter>
 </phpunit>
