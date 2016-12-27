@@ -15,6 +15,12 @@ class Router {
     protected $routes = [];
 
     /**
+     * Cache name
+     * @var string|callable
+     */
+    protected $cache_file = null;
+
+    /**
      * List registered groups
      * @var array
      */
@@ -181,6 +187,21 @@ class Router {
     }
 
     /**
+     * Enable cache routes by giving cache file name
+     *
+     * @param string|callable $cache_file
+     * @return null
+     */
+    public function cache($cache_file)
+    {
+        if (!is_string($cache_file) AND !is_callable($cache_file)) {
+            throw new \InvalidArgumentException("Cache name must be string or callable", 1);
+        }
+
+        $this->cache_file = $cache_file;
+    }
+
+    /**
      * Find route by given path and method
      *
      * @param   string $path
@@ -192,14 +213,34 @@ class Router {
         $pattern = $this->makePattern($method, $path);
         $all_routes = $this->getRoutes();
 
+        $cache_file = $this->cache_file;
         $chunk_routes = array_chunk($all_routes, $this->max_routes_in_regex);
 
-        foreach($chunk_routes as $i => $routes) {
-            $regex = [];
-            foreach($routes as $i => $route) {
-                $regex[] = $this->toRegex($route, $i);
+        if ($cache_file AND is_callable($cache_file)) {
+            $cache_file = call_user_func_array($cache_file, [$all_routes, $this]);
+        }
+
+        if ($cache_file AND file_exists($cache_file) AND $cached_routes = $this->getCachedRoutes($cache_file)) {
+            $route_regexes = $cached_routes;
+        } else {
+            $route_regexes = [];
+
+            foreach($chunk_routes as $i => $routes) {
+                $regex = [];
+                foreach($routes as $i => $route) {
+                    $regex[] = $this->toRegex($route, $i);
+                }
+                $regex = "~^(?|".implode("|", $regex).")$~x";
+                $route_regexes[] = $regex;
             }
-            $regex = "~^(?|".implode("|", $regex).")$~x";
+
+            if ($cache_file) {
+                $this->cacheRoutes($cache_file, $route_regexes);
+            }
+        }
+
+        foreach($route_regexes as $i => $regex) {
+            $routes = $chunk_routes[$i];
 
             if(!preg_match($regex, $pattern, $matches)) {
                 continue;
@@ -259,6 +300,30 @@ class Router {
             if($route->getName() == $name) return $route;
         }
         return null;
+    }
+
+    /**
+     * Get cache route regex from cache file
+     *
+     * @param   string $cache_file
+     * @return  array
+     */
+    protected function getCachedRoutes($cache_file)
+    {
+        $content = file_get_contents($cache_file);
+        return unserialize($content);
+    }
+
+    /**
+     * Save routes to cache file
+     *
+     * @param   string $cache_file
+     * @return  array
+     */
+    protected function cacheRoutes($cache_file, $route_regexes)
+    {
+        $content = serialize($route_regexes);
+        return file_put_contents($cache_file, $content);
     }
 
     /**
