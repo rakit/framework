@@ -6,19 +6,21 @@ class UploadedFile {
 
     use MacroableTrait;
 
-    public $tmp;
-
     public $name;
-
-    public $size;
-
-    public $error;
-
-    public $mimeType;
 
     public $extension;
 
+    protected $tmp;
+
+    protected $size;
+
+    protected $error;
+
+    protected $mimeType;
+
     protected $location;
+
+    protected $originalName;
 
     public function __construct(array $_file)
     {
@@ -27,8 +29,14 @@ class UploadedFile {
         $this->error = $_file['error'];
         $this->mimeType = $_file['type'];
         $this->location = $this->tmp;
+        $this->originalName = $_file['name'];
         $this->name = pathinfo($_file['name'], PATHINFO_FILENAME);
         $this->extension = pathinfo($_file['name'], PATHINFO_EXTENSION);
+    }
+
+    public function getClientOriginalName()
+    {
+        return $this->originalName;
     }
 
     public function getFilename()
@@ -37,16 +45,32 @@ class UploadedFile {
         return $this->name.$ext;
     }
 
+    public function getTemporaryFile()
+    {
+        return $this->tmp;
+    }
+
+    public function getMimeType()
+    {
+        return $this->mimeType;
+    }
+
     public function getLocation()
     {
         return $this->location;
     }
 
-    public function move($location)
+    public function move($location, $filename = null)
     {
+        if ($filename) {
+            $pathinfo = pathinfo($filename);
+            $this->extension = $pathinfo['extension'];
+            $this->name = $pathinfo['filename'];
+        }
+
         if(!is_uploaded_file($this->tmp)) return FALSE;
 
-        $location = rtrim($location,"/");
+        $location = rtrim($location, "/");
 
         if(!is_dir($location)) {
             throw new \RuntimeException("Upload directory '{$location}' not found", 1);
