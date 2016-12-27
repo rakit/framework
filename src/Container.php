@@ -16,13 +16,17 @@ class Container implements ArrayAccess {
     /**
      * Register a key into container
      *
-     * @param   string $key
+     * @param   string|array $key
      * @param   mixed $value
      * @return  Closure
      */
     public function register($key, $value)
     {
-        $keys = explode(":", $key);
+        if (is_string($key)) {
+            $keys = explode(":", $key);
+        } else {
+            $keys = $key;
+        }
 
         // wrap non-closure value in a closure
         if(false === $value instanceof Closure) {
