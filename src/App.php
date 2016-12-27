@@ -235,8 +235,6 @@ class App implements ArrayAccess {
         // reset providers, we don't need them anymore
         $this->providers = [];
 
-        
-
         return $this->booted = true;
     }
 
