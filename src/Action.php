@@ -160,7 +160,7 @@ abstract class Action {
             $app->response->html($returned, null, $app->response->getContentType());
         }
 
-        return $app->response->body;
+        return $returned;
     }
 
     /**
