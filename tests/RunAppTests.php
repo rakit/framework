@@ -421,6 +421,26 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      * @runInSeparateProcess
      * @preserveGlobalState enabled
      */
+    public function testAppBindedToClosure()
+    {
+        $this->app->something = "foo";
+        $this->app->foo = "bar";
+        $this->app->middleware('test', function($req, $res, $next) {
+            $next();
+            return strtoupper($this->something.$res->body);
+        });
+
+        $this->app->get("/hello", function() {
+            return $this->foo;
+        })->test();
+
+        $this->assertResponse("GET", "/hello", 'FOOBAR');
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
     public function testException()
     {
         $this->app->get("/error", function(Response $response) {

@@ -566,6 +566,9 @@ class App implements ArrayAccess {
 
             // last.. wrap callable in Closure
             return !is_callable($callable)? false : function() use ($app, $callable, $params) {
+                if ($callable instanceof Closure) {
+                    $callable = Closure::bind($callable, $app, App::class);
+                }
                 return $app->container->call($callable, $params);
             };
         });
@@ -633,6 +636,21 @@ class App implements ArrayAccess {
         $this->response->macro('redirect', function($defined_url) use ($app) {
             return $app->redirect($defined_url);
         });
+    }
+
+    public function bind($key, $value)
+    {
+        if (is_string($value)) {
+            if (!class_exists($value)) {
+                throw new InvalidArgumentException("Cannot bind {$value}, class {$value} is not exists");
+            }
+            
+            $value = function($container) use ($value) {
+                return $container->getOrMake($value);
+            };
+        }
+
+        $this->container->register($key, $value);
     }
 
     /**
