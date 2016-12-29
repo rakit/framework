@@ -349,6 +349,28 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      * @runInSeparateProcess
      * @preserveGlobalState enabled
      */
+    public function testGlobalMiddleware()
+    {
+        $this->app->setMiddleware('uppercase', function($req, $res, $next) {
+            $next();
+            return strtoupper($res->body);
+        });
+
+        $this->app->useMiddleware('uppercase');
+
+        $this->app->get('/anything.json', function() {
+            return [
+                'message' => 'hello'
+            ];
+        });
+
+        $this->assertResponse("GET", "/anything.json", '{"MESSAGE":"HELLO"}', 200, 'application/json');
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState enabled
+     */
     public function testRouteGroupParamCondition()
     {
         $this->app->group('/u/:username', function($group) {
