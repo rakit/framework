@@ -36,6 +36,8 @@ class App implements ArrayAccess {
 
     protected $middlewares = array();
 
+    protected $global_middlewares = array();
+
     protected $waiting_list_providers = array();
 
     protected $providers = array();
@@ -113,15 +115,47 @@ class App implements ArrayAccess {
     }
 
     /**
-     * Register a middleware
+     * Set middleware
      *
      * @param   string $name
      * @param   mixed $callable
      * @return  void
      */
-    public function middleware($name, $callable)
+    public function setMiddleware($name, $callable)
     {
         $this->middlewares[$name] = $callable;
+    }
+
+    /**
+     * Check middleware is registered or not
+     *
+     * @param   string $name
+     * @return  void
+     */
+    public function hasMiddleware($name)
+    {
+        return isset($this->middlewares[$name]);
+    }
+
+    /**
+     * Add global middleware
+     *
+     * @param   string|callable $name_or_callable
+     * @return  void
+     */
+    public function useMiddleware($name_or_callable)
+    {
+        if (!is_callable($name_or_callable)) {
+            if (is_string($name_or_callable) AND $this->hasMiddleware($name_or_callable)) {
+                $callable = $this->middlewares[$name_or_callable];
+            } else {
+                throw new InvalidArgumentException("Cannot use global middleware. Middleware must be callable or registered middleware", 1);
+            }
+        } else {
+            $callable = $name_or_callable;
+        }
+
+        $this->global_middlewares[] = $callable;
     }
 
     /**
@@ -205,7 +239,11 @@ class App implements ArrayAccess {
      */
     public function route($methods, $path, $action)
     {
-        return $this->router->add($methods, $path, $action);
+        $route = $this->router->add($methods, $path, $action);
+        if (!empty($this->global_middlewares)) {
+            $route->middleware($this->global_middlewares);
+        }
+        return $route;
     }
 
     /**
