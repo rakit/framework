@@ -179,7 +179,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testMiddlewareBefore()
     {
-        $this->app->middleware('foobar', function($req, $res, $next) {
+        $this->app->setMiddleware('foobar', function($req, $res, $next) {
             $req->foobar = "foobar";
             return $next();
         });
@@ -197,7 +197,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testMiddlewareAfter()
     {
-        $this->app->middleware('uppercase', function($req, $res, $next) {
+        $this->app->setMiddleware('uppercase', function($req, $res, $next) {
             $next();
             return strtoupper($res->body);
         });
@@ -215,7 +215,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testMiddlewareBeforeAndAfter()
     {
-        $this->app->middleware('uppercase', function($req, $res, $next) {
+        $this->app->setMiddleware('uppercase', function($req, $res, $next) {
             $req->foobar = "foobar";
             
             $next();
@@ -236,7 +236,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testMiddlewareParam()
     {
-        $this->app->middleware('setStr', function($req, $res, $next, $str) {
+        $this->app->setMiddleware('setStr', function($req, $res, $next, $str) {
             $req->str = $str;
             return $next();
         });
@@ -254,17 +254,17 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testMultipleMiddleware()
     {
-        $this->app->middleware('setStr', function($req, $res, $next, $str) {
+        $this->app->setMiddleware('setStr', function($req, $res, $next, $str) {
             $req->str = $str;
             return $next();
         });
 
-        $this->app->middleware('uppercase', function($req, $res, $next) {
+        $this->app->setMiddleware('uppercase', function($req, $res, $next) {
             $next();
             return strtoupper($res->body);
         });
 
-        $this->app->middleware('jsonify', function($req, $res, $next) {
+        $this->app->setMiddleware('jsonify', function($req, $res, $next) {
             $next();
             return $res->json(['body' => $res->body]);
         });
@@ -282,7 +282,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testIgnoringController()
     {
-        $this->app->middleware('no-controller', function($req, $res, $next) {
+        $this->app->setMiddleware('no-controller', function($req, $res, $next) {
             return "controller ignored";
         });
 
@@ -331,7 +331,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testMiddlewareKeepResponseToJson()
     {
-        $this->app->middleware('uppercase', function($req, $res, $next) {
+        $this->app->setMiddleware('uppercase', function($req, $res, $next) {
             $next();
             return strtoupper($res->body);
         });
@@ -369,7 +369,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
      */
     public function testRouteGroupMiddleware()
     {
-        $this->app->middleware('setStr', function($req, $res, $next, $str) {
+        $this->app->setMiddleware('setStr', function($req, $res, $next, $str) {
             $req->str = $str;
             return $next();
         });
@@ -425,7 +425,7 @@ class RunAppTests extends PHPUnit_Framework_TestCase {
     {
         $this->app->something = "foo";
         $this->app->foo = "bar";
-        $this->app->middleware('test', function($req, $res, $next) {
+        $this->app->setMiddleware('test', function($req, $res, $next) {
             $next();
             return strtoupper($this->something.$res->body);
         });

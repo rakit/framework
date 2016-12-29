@@ -113,13 +113,13 @@ class App implements ArrayAccess {
     }
 
     /**
-     * Register a middleware
+     * Set middleware
      *
      * @param   string $name
      * @param   mixed $callable
      * @return  void
      */
-    public function middleware($name, $callable)
+    public function setMiddleware($name, $callable)
     {
         $this->middlewares[$name] = $callable;
     }
